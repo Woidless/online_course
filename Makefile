@@ -1,13 +1,20 @@
 .PHONY: run migrate makemigrations shell createsuperuser install freeze
 
+shell:
+	python3.12 manage.py shell
+
 all_run:
 	python3.12 manage.py makemigrations 
 	python3.12 manage.py migrate
 	python3.12 manage.py check
+
 # Запуск сервера
 run:
 	python3.12 manage.py runserver
+
+frontend:
 	npm run dev --prefix ./frontend
+
 # Применить миграции
 migrate:
 	python3.12 manage.py migrate

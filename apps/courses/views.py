@@ -63,7 +63,6 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
     DELETE /api/courses/<id>/ - удалить (admin)
     """
     serializer_class = CourseSerializer
-    permission_classes = (IsAuthenticated, IsTeacherOfCourse)
     queryset = Course.objects.all()
 
     def get_permissions(self):
@@ -71,8 +70,8 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [IsAuthenticated()]
         if self.request.method == 'DELETE':
             return [IsAdmin()]
-        return [IsAuthenticated(), IsTeacherOfCourse()]
-
+        return [IsTeacherOrAdmin(), IsTeacherOfCourse()]
+    
 
 class CoursePublishView(APIView):
     """

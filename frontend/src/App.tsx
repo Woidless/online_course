@@ -11,10 +11,14 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 
 // Student pages
+import StudentCoursePage from './pages/student/StudentCoursePage'
 import StudentDashboard from './pages/student/StudentDashboard'
 import StudentCourses from './pages/student/StudentCourses'
 import StudentSchedule from './pages/student/StudentSchedule'
 import StudentProfile from './pages/student/StudentProfile'
+import StudentLessonPage from './pages/student/StudentLessonPage'
+import StudentAssignmentPage from './pages/student/StudentAssignmentPage'
+import StudentQuizPage from './pages/student/StudentQuizPage'
 
 // Icons
 const HomeIcon = () => (
@@ -79,9 +83,13 @@ export default function App() {
             element={<DashboardLayout navItems={studentNav} role="student" />}
           >
             <Route index element={<StudentDashboard />} />
-            <Route path="courses" element={<StudentCourses />} />
-            <Route path="schedule" element={<StudentSchedule />} />
             <Route path="profile" element={<StudentProfile />} />
+            <Route path="schedule" element={<StudentSchedule />} />
+            <Route path="courses" element={<StudentCourses />} />
+            <Route path="courses/:id" element={<StudentCoursePage />} />
+            <Route path="lessons/:id" element={<StudentLessonPage />} />
+            <Route path="assignments/:id" element={<StudentAssignmentPage />} />
+            <Route path="quizzes/:id" element={<StudentQuizPage />} />
           </Route>
         </Route>
 
