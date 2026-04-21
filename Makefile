@@ -7,7 +7,7 @@ all_run:
 # Запуск сервера
 run:
 	python3.12 manage.py runserver
-
+	npm run dev --prefix ./frontend
 # Применить миграции
 migrate:
 	python3.12 manage.py migrate
