@@ -32,7 +32,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
         if user.role in ('teacher', 'admin'):
             return Lesson.objects.filter(course_id=course_id)
 
-        # Студент видит только опубликованные уроки своих курсов
+        # Студент — только опубликованные уроки курсов на которые записан
         return Lesson.objects.filter(
             course_id=course_id,
             is_published=True,

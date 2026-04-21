@@ -15,21 +15,23 @@ export default function StudentCoursePage() {
 
   useEffect(() => {
     if (!id) return
-    console.log('Loading course:', id)
+
+    setLoading(true)
+    setError(null)
 
     Promise.all([
       coursesApi.detail(Number(id)),
       api.get<Lesson[]>(`/courses/${id}/lessons/`),
-      coursesApi.progress(Number(id)),
-    ]).then(([courseRes, lessonsRes, progressRes]) => {
-      console.log('Course data:', courseRes.data)
+    ]).then(([courseRes, lessonsRes]) => {
       setCourse(courseRes.data)
       setLessons(lessonsRes.data)
-      setProgress(progressRes.data)
     }).catch(err => {
-      console.error('Error:', err.response?.status, err.response?.data)
-      setError(`Ошибка ${err.response?.status}: ${JSON.stringify(err.response?.data)}`)
+      setError(`Ошибка ${err.response?.status} на ${err.config?.url}: ${JSON.stringify(err.response?.data)}`)
     }).finally(() => setLoading(false))
+
+    coursesApi.progress(Number(id))
+      .then(res => setProgress(res.data))
+      .catch(() => {})
   }, [id])
 
   if (loading) return (
