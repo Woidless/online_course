@@ -8,9 +8,7 @@ export default function StudentCourses() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    coursesApi.my()
-      .then(res => setCourses(res.data))
-      .finally(() => setLoading(false))
+    coursesApi.my().then(res => setCourses(res.data)).finally(() => setLoading(false))
   }, [])
 
   if (loading) return (
@@ -21,12 +19,11 @@ export default function StudentCourses() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900">Мои курсы</h1>
-
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Мои курсы</h1>
       {courses.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-500">Вы ещё не записаны ни на один курс</p>
-          <p className="text-sm text-gray-400 mt-1">Обратитесь к администратору для записи</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">Вы ещё не записаны ни на один курс</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Обратитесь к администратору для записи</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
@@ -34,22 +31,14 @@ export default function StudentCourses() {
             <Link
               key={course.id}
               to={`/student/courses/${course.id}`}
-              className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-sm transition-all"
+              className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all"
             >
-              {course.cover && (
-                <img
-                  src={course.cover}
-                  alt={course.title}
-                  className="w-full h-32 object-cover rounded-lg mb-4"
-                />
-              )}
-              <h3 className="font-medium text-gray-900">{course.title}</h3>
-              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{course.description}</p>
+              {course.cover && <img src={course.cover} alt={course.title} className="w-full h-32 object-cover rounded-lg mb-4" />}
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">{course.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{course.description}</p>
               <div className="flex items-center justify-between mt-4">
-                <span className="text-xs text-gray-400">{course.lessons_count} уроков</span>
-                <span className="text-xs text-gray-400">
-                  {course.teacher.full_name}
-                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{course.lessons_count} уроков</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{course.teacher.full_name}</span>
               </div>
             </Link>
           ))}

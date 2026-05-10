@@ -74,14 +74,12 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context.get('request')
-        # Проверяем что ответ ещё не сдан
         if Submission.objects.filter(
             assignment=attrs['assignment'],
             student=request.user
         ).exists():
             raise serializers.ValidationError('Вы уже сдали это задание.')
-        if not attrs.get('content') and not attrs.get('file'):
-            raise serializers.ValidationError('Добавьте текст или файл ответа.')
+        # Убираем проверку — файл ИЛИ текст необязательны одновременно
         return attrs
 
     def create(self, validated_data):

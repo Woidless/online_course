@@ -17,7 +17,8 @@ urlpatterns = [
     path('create/', CourseCreateView.as_view(), name='course-create'),
     path('my/', MyCoursesView.as_view(), name='course-my'),
     path('<int:pk>/', CourseDetailView.as_view(), name='course-detail'),
-    path('<int:pk>/<str:action>/', CoursePublishView.as_view(), name='course-publish'),
+    path('<int:pk>/publish/', CoursePublishView.as_view(), {'action': 'publish'}, name='course-publish'),
+    path('<int:pk>/unpublish/', CoursePublishView.as_view(), {'action': 'unpublish'}, name='course-unpublish'),
 
     # Groups
     path('<int:course_id>/groups/', CourseGroupListCreateView.as_view(), name='group-list'),

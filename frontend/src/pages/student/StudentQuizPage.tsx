@@ -15,9 +15,7 @@ export default function StudentQuizPage() {
 
   useEffect(() => {
     if (!id) return
-    api.get<Quiz>(`/quizzes/${id}/`)
-      .then(res => setQuiz(res.data))
-      .finally(() => setLoading(false))
+    api.get<Quiz>(`/quizzes/${id}/`).then(res => setQuiz(res.data)).finally(() => setLoading(false))
   }, [id])
 
   const handleStart = async () => {
@@ -33,11 +31,7 @@ export default function StudentQuizPage() {
     } else if (type === 'multiple') {
       setAnswers(prev => {
         const current = (prev[questionId] as string[]) || []
-        if (checked) {
-          return { ...prev, [questionId]: [...current, answerId] }
-        } else {
-          return { ...prev, [questionId]: current.filter(a => a !== answerId) }
-        }
+        return { ...prev, [questionId]: checked ? [...current, answerId] : current.filter(a => a !== answerId) }
       })
     }
   }
@@ -46,14 +40,9 @@ export default function StudentQuizPage() {
     if (!attempt) return
     setSubmitting(true)
     try {
-      const { data } = await api.post<QuizAttempt>(
-        `/attempts/${attempt.id}/submit/`,
-        { answers }
-      )
+      const { data } = await api.post<QuizAttempt>(`/attempts/${attempt.id}/submit/`, { answers })
       setResult(data)
-    } finally {
-      setSubmitting(false)
-    }
+    } finally { setSubmitting(false) }
   }
 
   if (loading) return (
@@ -62,33 +51,32 @@ export default function StudentQuizPage() {
     </div>
   )
 
-  if (!quiz) return <div className="text-center py-12 text-gray-500">Тест не найден</div>
+  if (!quiz) return <div className="text-center py-12 text-gray-500 dark:text-gray-400">Тест не найден</div>
 
-  // Результат
   if (result) {
     const passed = result.score !== null && result.score >= quiz.passing_score
     return (
       <div className="max-w-2xl space-y-6">
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
           ← Назад
         </button>
-        <div className={`rounded-xl border p-8 text-center ${passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${passed ? 'bg-green-100' : 'bg-red-100'}`}>
+        <div className={`rounded-xl border p-8 text-center ${passed
+          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'}`}>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${passed ? 'bg-green-100 dark:bg-green-900/40' : 'bg-red-100 dark:bg-red-900/40'}`}>
             <span className="text-3xl">{passed ? '🎉' : '😔'}</span>
           </div>
-          <h2 className={`text-2xl font-semibold mb-2 ${passed ? 'text-green-900' : 'text-red-900'}`}>
+          <h2 className={`text-2xl font-semibold mb-2 ${passed ? 'text-green-900 dark:text-green-300' : 'text-red-900 dark:text-red-300'}`}>
             {passed ? 'Тест пройден!' : 'Тест не пройден'}
           </h2>
-          <p className={`text-4xl font-bold mb-2 ${passed ? 'text-green-700' : 'text-red-700'}`}>
+          <p className={`text-4xl font-bold mb-2 ${passed ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
             {result.score}%
           </p>
-          <p className={`text-sm ${passed ? 'text-green-700' : 'text-red-700'}`}>
+          <p className={`text-sm ${passed ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
             Проходной балл: {quiz.passing_score}%
           </p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-6 px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
-          >
+          <button onClick={() => navigate(-1)}
+            className="mt-6 px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
             Вернуться к уроку
           </button>
         </div>
@@ -96,24 +84,20 @@ export default function StudentQuizPage() {
     )
   }
 
-  // Старт теста
   if (!attempt) {
     return (
       <div className="max-w-2xl space-y-6">
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => navigate(-1)} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
           ← Назад
         </button>
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">{quiz.title}</h1>
-          <div className="flex items-center justify-center gap-6 my-6 text-sm text-gray-500">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">{quiz.title}</h1>
+          <div className="flex items-center justify-center gap-6 my-6 text-sm text-gray-500 dark:text-gray-400">
             <span>{quiz.questions_count} вопросов</span>
             {quiz.time_limit && <span>{quiz.time_limit} минут</span>}
             <span>Проходной балл: {quiz.passing_score}%</span>
           </div>
-          <button
-            onClick={handleStart}
-            className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <button onClick={handleStart} className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
             Начать тест
           </button>
         </div>
@@ -121,56 +105,40 @@ export default function StudentQuizPage() {
     )
   }
 
-  // Прохождение теста
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">{quiz.title}</h1>
-
+      <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{quiz.title}</h1>
       {quiz.questions.map((question, index) => (
-        <div key={question.id} className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="font-medium text-gray-900 mb-4">
+        <div key={question.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <p className="font-medium text-gray-900 dark:text-gray-100 mb-4">
             {index + 1}. {question.text}
           </p>
-
           {question.type === 'text' ? (
-            <textarea
-              rows={3}
+            <textarea rows={3}
               onChange={e => handleAnswer(question.id, e.target.value, 'text')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder="Введите ответ..."
-            />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              placeholder="Введите ответ..." />
           ) : (
             <div className="space-y-2">
               {question.answers.map(answer => (
-                <label
-                  key={answer.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-colors"
-                >
+                <label key={answer.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors">
                   <input
                     type={question.type === 'single' ? 'radio' : 'checkbox'}
                     name={`question-${question.id}`}
                     value={answer.id}
-                    onChange={e => handleAnswer(
-                      question.id,
-                      String(answer.id),
-                      question.type,
-                      e.target.checked
-                    )}
+                    onChange={e => handleAnswer(question.id, String(answer.id), question.type, e.target.checked)}
                     className="w-4 h-4 text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">{answer.text}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{answer.text}</span>
                 </label>
               ))}
             </div>
           )}
         </div>
       ))}
-
-      <button
-        onClick={handleSubmit}
-        disabled={submitting}
-        className="w-full py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
-      >
+      <button onClick={handleSubmit} disabled={submitting}
+        className="w-full py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50">
         {submitting ? 'Отправка...' : 'Завершить тест'}
       </button>
     </div>

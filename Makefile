@@ -1,5 +1,10 @@
 .PHONY: run migrate makemigrations shell createsuperuser install freeze
 
+# npm run dev
+
+postgresql:
+	sudo service postgresql start
+
 shell:
 	python3.12 manage.py shell
 
@@ -11,10 +16,7 @@ all_run:
 # Запуск сервера
 run:
 	python3.12 manage.py runserver
-
-frontend:
-	npm run dev --prefix ./frontend
-
+	
 # Применить миграции
 migrate:
 	python3.12 manage.py migrate
