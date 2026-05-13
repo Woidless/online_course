@@ -18,6 +18,7 @@ migrate:
 	python3.12 manage.py makemigrations
 	python3.12 manage.py migrate
 	python3.12 manage.py check
+	git push origin main
 	
 # Django shell
 shell:
