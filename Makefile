@@ -1,6 +1,8 @@
 .PHONY: run migrate makemigrations shell createsuperuser install freeze
 
-# npm run dev
+front:
+	cd frontend
+	npm run dev
 
 postgresql:
 	sudo service postgresql start
@@ -8,23 +10,15 @@ postgresql:
 shell:
 	python3.12 manage.py shell
 
-all_run:
-	python3.12 manage.py makemigrations 
-	python3.12 manage.py migrate
-	python3.12 manage.py check
-
 # Запуск сервера
 run:
 	python3.12 manage.py runserver
 	
-# Применить миграции
 migrate:
-	python3.12 manage.py migrate
-
-# Создать миграции
-makemigrations:
 	python3.12 manage.py makemigrations
-
+	python3.12 manage.py migrate
+	python3.12 manage.py check
+	
 # Django shell
 shell:
 	python3.12 manage.py shell

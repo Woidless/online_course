@@ -19,6 +19,15 @@ class Course(models.Model):
         verbose_name='Преподаватель'
     )
     is_published = models.BooleanField(default=False, verbose_name='Опубликован')
+    is_free = models.BooleanField(default=True, verbose_name='Бесплатный')
+    price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Цена'
+    )
+    has_live_sessions = models.BooleanField(default=False, verbose_name='Онлайн занятия')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

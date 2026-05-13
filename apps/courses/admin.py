@@ -4,8 +4,8 @@ from .models import Course, CourseGroup, Enrollment
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ('title', 'teacher', 'is_published', 'created_at')
-    list_filter = ('is_published',)
+    list_display = ('title', 'teacher', 'is_published', 'is_free', 'price', 'has_live_sessions', 'created_at')
+    list_filter = ('is_published', 'is_free', 'has_live_sessions')
     search_fields = ('title', 'teacher__email')
 
 

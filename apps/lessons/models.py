@@ -1,5 +1,5 @@
 from django.db import models
-from apps.courses.models import Course
+from apps.courses.models import Course, CourseGroup
 from apps.users.models import User
 
 
@@ -16,14 +16,6 @@ class Lesson(models.Model):
     youtube_url = models.URLField(
         null=True, blank=True,
         verbose_name='Ссылка на YouTube'
-    )
-    zoom_url = models.URLField(
-        null=True, blank=True,
-        verbose_name='Ссылка на Zoom'
-    )
-    scheduled_at = models.DateTimeField(
-        null=True, blank=True,
-        verbose_name='Дата и время занятия'
     )
     order = models.PositiveIntegerField(default=0, verbose_name='Порядок')
     is_published = models.BooleanField(default=False, verbose_name='Опубликован')
@@ -98,3 +90,38 @@ class LessonProgress(models.Model):
 
     def __str__(self):
         return f'{self.student.full_name} — {self.lesson.title}'
+
+
+class Schedule(models.Model):
+    group = models.ForeignKey(
+        CourseGroup,
+        on_delete=models.CASCADE,
+        related_name='schedule',
+        verbose_name='Группа'
+    )
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='schedule',
+        verbose_name='Урок'
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='scheduled_lessons',
+        limit_choices_to={'role': 'teacher'},
+        verbose_name='Преподаватель'
+    )
+    scheduled_at = models.DateTimeField(verbose_name='Дата и время занятия')
+    zoom_url = models.URLField(null=True, blank=True, verbose_name='Ссылка на Zoom')
+
+    class Meta:
+        verbose_name = 'Расписание'
+        verbose_name_plural = 'Расписание'
+        unique_together = ('group', 'lesson')
+        ordering = ['scheduled_at']
+
+    def __str__(self):
+        return f'{self.group} — {self.lesson.title} ({self.scheduled_at:%d.%m.%Y %H:%M})'

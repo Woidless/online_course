@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Lesson, LessonMaterial, LessonProgress
+from .models import Lesson, LessonMaterial, LessonProgress, Schedule
 
 
 class LessonMaterialSerializer(serializers.ModelSerializer):
@@ -18,7 +18,7 @@ class LessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = (
             'id', 'course', 'title', 'description', 'content',
-            'youtube_url', 'zoom_url', 'scheduled_at',
+            'youtube_url',
             'order', 'is_published', 'materials',
             'is_completed', 'created_at', 'updated_at',
         )
@@ -47,12 +47,17 @@ class LessonProgressSerializer(serializers.ModelSerializer):
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
-    """Урок в расписании — только нужные поля"""
-    course_title = serializers.CharField(source='course.title', read_only=True)
+    lesson_title = serializers.CharField(source='lesson.title', read_only=True)
+    group_name = serializers.CharField(source='group.name', read_only=True)
+    course_title = serializers.CharField(source='group.course.title', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True)
 
     class Meta:
-        model = Lesson
+        model = Schedule
         fields = (
-            'id', 'title', 'course_title',
-            'zoom_url', 'scheduled_at',
+            'id', 'group', 'group_name', 'course_title',
+            'lesson', 'lesson_title',
+            'teacher', 'teacher_name',
+            'scheduled_at', 'zoom_url',
         )
+        read_only_fields = ('id',)

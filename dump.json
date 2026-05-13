@@ -1,0 +1,282 @@
+[
+{
+  "model": "courses.course",
+  "pk": 1,
+  "fields": {
+    "title": "Основы искусственного интеллекта",
+    "description": "Курс охватывает базовые концепции ИИ и машинного обучения. Студенты познакомятся с алгоритмами ML, нейронными сетями, обработкой данных и практическими применениями ИИ в разработке веб-приложений.",
+    "cover": "",
+    "teacher": 6,
+    "is_published": true,
+    "created_at": "2026-04-21T19:23:08.492Z",
+    "updated_at": "2026-04-21T19:23:08.492Z"
+  }
+},
+{
+  "model": "courses.coursegroup",
+  "pk": 1,
+  "fields": {
+    "course": 1,
+    "name": "Группа А — 2025",
+    "teacher": 6,
+    "starts_at": "2026-04-21",
+    "ends_at": "2026-07-20",
+    "created_at": "2026-04-21T19:23:08.513Z"
+  }
+},
+{
+  "model": "courses.enrollment",
+  "pk": 1,
+  "fields": {
+    "student": 7,
+    "group": 1,
+    "status": "active",
+    "enrolled_at": "2026-04-21T19:23:08.525Z"
+  }
+},
+{
+  "model": "lessons.lesson",
+  "pk": 1,
+  "fields": {
+    "course": 1,
+    "title": "Введение в искусственный интеллект",
+    "description": "Что такое ИИ, история развития, области применения.",
+    "content": "## Что такое искусственный интеллект?\n\nИскусственный интеллект (ИИ) — это направление компьютерных наук, \nзанимающееся созданием систем, способных выполнять задачи, \nтребующие человеческого интеллекта.\n\n### Основные направления ИИ:\n- **Машинное обучение** — обучение на данных без явного программирования\n- **Компьютерное зрение** — анализ и понимание изображений\n- **Обработка естественного языка** — понимание и генерация текста\n- **Робототехника** — создание интеллектуальных роботов\n\n### История ИИ:\n1. 1950 — Тест Тьюринга\n2. 1956 — Термин \"искусственный интеллект\" (Маккарти)\n3. 1997 — Deep Blue побеждает Каспарова\n4. 2012 — Прорыв в глубоком обучении (AlexNet)\n5. 2022 — ChatGPT меняет мир\n",
+    "youtube_url": "https://www.youtube.com/watch?v=mJeNghZXtMo",
+    "zoom_url": null,
+    "scheduled_at": "2026-04-22T19:27:22.079Z",
+    "order": 1,
+    "is_published": true,
+    "created_at": "2026-04-21T19:27:22.099Z",
+    "updated_at": "2026-04-21T19:27:22.099Z"
+  }
+},
+{
+  "model": "lessons.lesson",
+  "pk": 2,
+  "fields": {
+    "course": 1,
+    "title": "Машинное обучение: основы",
+    "description": "Типы ML, обучение с учителем и без, основные алгоритмы.",
+    "content": "## Машинное обучение\n\nМашинное обучение — подраздел ИИ, где системы учатся на данных.\n\n### Типы машинного обучения:\n\n**1. Обучение с учителем (Supervised Learning)**\n- Данные размечены\n- Примеры: классификация, регрессия\n- Алгоритмы: Linear Regression, Decision Tree, SVM\n\n**2. Обучение без учителя (Unsupervised Learning)**\n- Данные не размечены\n- Примеры: кластеризация, снижение размерности\n- Алгоритмы: K-Means, PCA, Autoencoders\n\n**3. Обучение с подкреплением (Reinforcement Learning)**\n- Агент учится через взаимодействие со средой\n- Примеры: игры, робототехника\n- Алгоритмы: Q-Learning, PPO\n\n### Основной процесс ML:\n1. Сбор данных\n2. Предобработка\n3. Выбор модели\n4. Обучение\n5. Оценка\n6. Деплой\n",
+    "youtube_url": "https://www.youtube.com/watch?v=ukzFI9rgwfU",
+    "zoom_url": "https://zoom.us/j/example-lesson-2",
+    "scheduled_at": "2026-04-24T19:27:22.079Z",
+    "order": 2,
+    "is_published": true,
+    "created_at": "2026-04-21T19:27:22.110Z",
+    "updated_at": "2026-04-21T19:27:22.110Z"
+  }
+},
+{
+  "model": "lessons.lesson",
+  "pk": 3,
+  "fields": {
+    "course": 1,
+    "title": "Нейронные сети и глубокое обучение",
+    "description": "Перцептрон, многослойные сети, функции активации, backpropagation.",
+    "content": "## Нейронные сети\n\nНейронные сети вдохновлены структурой мозга человека.\n\n### Строение нейронной сети:\n- **Входной слой** — принимает данные\n- **Скрытые слои** — обрабатывают данные\n- **Выходной слой** — выдаёт результат\n\n### Функции активации:\n- **ReLU**: f(x) = max(0, x) — самая популярная\n- **Sigmoid**: f(x) = 1/(1+e^-x) — для бинарной классификации\n- **Softmax** — для многоклассовой классификации\n\n### Обратное распространение ошибки:\n1. Прямой проход — вычисляем предсказание\n2. Вычисляем ошибку (loss)\n3. Обратный проход — вычисляем градиенты\n4. Обновляем веса через градиентный спуск\n\n### Популярные архитектуры:\n- **CNN** — свёрточные сети (изображения)\n- **RNN/LSTM** — рекуррентные сети (последовательности)\n- **Transformer** — внимание (текст, GPT)\n",
+    "youtube_url": "https://www.youtube.com/watch?v=aircAruvnKk",
+    "zoom_url": "https://zoom.us/j/example-lesson-3",
+    "scheduled_at": "2026-04-26T19:27:22.079Z",
+    "order": 3,
+    "is_published": true,
+    "created_at": "2026-04-21T19:27:22.117Z",
+    "updated_at": "2026-04-21T19:27:22.117Z"
+  }
+},
+{
+  "model": "lessons.lesson",
+  "pk": 4,
+  "fields": {
+    "course": 1,
+    "title": "Python для ИИ: NumPy и Pandas",
+    "description": "Работа с данными в Python — основные библиотеки для Data Science.",
+    "content": "## Python для ИИ\n\nPython — главный язык для ИИ и Data Science.\n\n### NumPy — работа с массивами:\n```python\nimport numpy as np\n\n# Создание массивов\na = np.array([1, 2, 3, 4, 5])\nb = np.zeros((3, 3))\nc = np.random.rand(100)\n\n# Операции\nprint(a.mean())   # среднее\nprint(a.std())    # стандартное отклонение\nprint(a.shape)    # форма массива\n```\n\n### Pandas — работа с таблицами:\n```python\nimport pandas as pd\n\n# Загрузка данных\ndf = pd.read_csv('data.csv')\n\n# Базовый анализ\nprint(df.head())\nprint(df.describe())\nprint(df.info())\n\n# Фильтрация\nyoung = df[df['age'] < 30]\n```\n\n### Matplotlib — визуализация:\n```python\nimport matplotlib.pyplot as plt\n\nplt.plot(history['loss'])\nplt.title('Training Loss')\nplt.xlabel('Epoch')\nplt.ylabel('Loss')\nplt.show()\n```\n",
+    "youtube_url": "https://www.youtube.com/watch?v=QUT1VHiLmmI",
+    "zoom_url": null,
+    "scheduled_at": "2026-04-28T19:27:22.079Z",
+    "order": 4,
+    "is_published": true,
+    "created_at": "2026-04-21T19:27:22.125Z",
+    "updated_at": "2026-04-21T19:27:22.125Z"
+  }
+},
+{
+  "model": "lessons.lesson",
+  "pk": 5,
+  "fields": {
+    "course": 1,
+    "title": "Разработка веб-приложения с ИИ",
+    "description": "Интеграция ML моделей в веб-приложение на Django и React.",
+    "content": "## Разработка веб-приложения с ИИ\n\n### Архитектура системы:\n### Backend (Django):\n```python\n# views.py\nfrom rest_framework.views import APIView\nfrom rest_framework.response import Response\nimport joblib\n\nclass PredictView(APIView):\n    def post(self, request):\n        model = joblib.load('model.pkl')\n        data = request.data['features']\n        prediction = model.predict([data])\n        return Response({'prediction': prediction[0]})\n```\n\n### Frontend (React):\n```typescript\nconst predict = async (features: number[]) => {\n    const response = await api.post('/predict/', { features })\n    return response.data.prediction\n}\n```\n\n### Деплой модели:\n1. Обучить модель локально\n2. Сохранить через joblib или pickle\n3. Загрузить в Django view\n4. Создать API endpoint\n5. Подключить к React\n\n### Популярные ML библиотеки для Python:\n- **scikit-learn** — классические алгоритмы\n- **TensorFlow/Keras** — нейронные сети\n- **PyTorch** — исследования и production\n- **Hugging Face** — готовые трансформеры\n",
+    "youtube_url": "https://www.youtube.com/watch?v=PmOi5YAqiLo",
+    "zoom_url": "https://zoom.us/j/example-final",
+    "scheduled_at": "2026-05-01T19:27:22.079Z",
+    "order": 5,
+    "is_published": true,
+    "created_at": "2026-04-21T19:27:22.132Z",
+    "updated_at": "2026-04-21T19:27:22.132Z"
+  }
+},
+{
+  "model": "lessons.lessonmaterial",
+  "pk": 1,
+  "fields": {
+    "lesson": 1,
+    "title": "Презентация: Введение в ИИ",
+    "type": "link",
+    "file": "",
+    "url": "https://docs.google.com/presentation/d/example1",
+    "created_at": "2026-04-21T19:27:22.154Z"
+  }
+},
+{
+  "model": "lessons.lessonmaterial",
+  "pk": 2,
+  "fields": {
+    "lesson": 2,
+    "title": "Шпаргалка по алгоритмам ML",
+    "type": "link",
+    "file": "",
+    "url": "https://docs.google.com/document/d/example2",
+    "created_at": "2026-04-21T19:27:22.163Z"
+  }
+},
+{
+  "model": "lessons.lessonmaterial",
+  "pk": 3,
+  "fields": {
+    "lesson": 3,
+    "title": "Визуализация нейронных сетей",
+    "type": "link",
+    "file": "",
+    "url": "https://playground.tensorflow.org",
+    "created_at": "2026-04-21T19:27:22.170Z"
+  }
+},
+{
+  "model": "lessons.lessonmaterial",
+  "pk": 4,
+  "fields": {
+    "lesson": 4,
+    "title": "Jupyter Notebook: NumPy и Pandas",
+    "type": "link",
+    "file": "",
+    "url": "https://colab.research.google.com/example",
+    "created_at": "2026-04-21T19:27:22.177Z"
+  }
+},
+{
+  "model": "lessons.lessonmaterial",
+  "pk": 5,
+  "fields": {
+    "lesson": 5,
+    "title": "Исходный код проекта",
+    "type": "link",
+    "file": "",
+    "url": "https://github.com/example/ai-webapp",
+    "created_at": "2026-04-21T19:27:22.184Z"
+  }
+},
+{
+  "model": "lessons.lessonprogress",
+  "pk": 1,
+  "fields": {
+    "student": 7,
+    "lesson": 1,
+    "completed": true,
+    "completed_at": "2026-04-23T04:06:37.955Z"
+  }
+},
+{
+  "model": "users.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$sFRGJ3VZU6M2aT7vRzRRzw$F2GDpDm7tlnKhGdL1eY1OAfz0EYqbvkD3+u5OPoJCIg=",
+    "last_login": "2026-04-15T21:02:29.656Z",
+    "is_superuser": true,
+    "email": "admin@admin.com",
+    "full_name": "admin",
+    "role": "admin",
+    "avatar": "",
+    "is_active": true,
+    "is_staff": true,
+    "date_joined": "2026-04-15T20:47:27.625Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$ZPVvumgtCDD3izs2UhT9iC$gpC5SWxpAUy55iz37/deDfLghh40yCWUjCdFqBV/JYo=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "student@test.com",
+    "full_name": "Тестовый Студент",
+    "role": "student",
+    "avatar": "",
+    "is_active": true,
+    "is_staff": false,
+    "date_joined": "2026-04-15T21:03:08.456Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 5,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$h9PZYjO9uVcJUYiIkSXAbA$D9DN0g3Ykj50OIyo2CQDsYYlBBkd7verApKRgS+fM88=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "bmoblp@mail.ru",
+    "full_name": "tester1",
+    "role": "student",
+    "avatar": "",
+    "is_active": true,
+    "is_staff": false,
+    "date_joined": "2026-04-20T17:04:03.115Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 6,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$tdLglnzMowxiM6sQC96vHw$dCemsXWZnVBCq/Dn43xmwwWKc5Ch2awsXdQnvHn2jfU=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "teacher@lms.com",
+    "full_name": "Айгуль Бекова",
+    "role": "teacher",
+    "avatar": "",
+    "is_active": true,
+    "is_staff": false,
+    "date_joined": "2026-04-21T19:23:07.825Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 7,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$e3pp6US3ArnGl4Ugnrgfck$BopBMaCVq3ezKLsIAvqjE6UkvZG30417Ory76AM7L8M=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "student@lms.com",
+    "full_name": "Testerov Tester Testerovich",
+    "role": "student",
+    "avatar": "",
+    "is_active": true,
+    "is_staff": false,
+    "date_joined": "2026-04-21T19:23:08.167Z",
+    "groups": [],
+    "user_permissions": []
+  }
+}
+]

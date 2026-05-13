@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.users.permissions import IsTeacherOrAdmin, IsStudent
 from apps.courses.models import Course, Enrollment
-from .models import Lesson, LessonMaterial, LessonProgress
+from .models import Lesson, LessonMaterial, LessonProgress, Schedule
 from .serializers import (
     LessonSerializer,
     LessonMaterialSerializer,
@@ -156,34 +156,54 @@ class MyCourseProgressView(APIView):
         })
 
 
-class ScheduleView(generics.ListAPIView):
+class ScheduleView(generics.ListCreateAPIView):
     """
-    GET /api/schedule/ — расписание занятий (уроки с zoom_url и scheduled_at)
+    GET  /api/schedule/        — расписание занятий (фильтруется по роли)
+    POST /api/schedule/        — создать занятие в расписании (teacher, admin)
     """
     serializer_class = ScheduleSerializer
     permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsTeacherOrAdmin()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
         now = timezone.now()
 
         if user.role == 'teacher':
-            return Lesson.objects.filter(
-                course__teacher=user,
+            # Учитель видит расписание своих групп
+            return Schedule.objects.filter(
+                teacher=user,
                 scheduled_at__gte=now,
-                zoom_url__isnull=False
-            ).order_by('scheduled_at')
+            ).select_related('lesson', 'group', 'teacher')
 
         if user.role == 'student':
-            return Lesson.objects.filter(
-                course__groups__enrollments__student=user,
-                course__groups__enrollments__status='active',
+            # Студент видит расписание своей группы
+            return Schedule.objects.filter(
+                group__enrollments__student=user,
+                group__enrollments__status='active',
                 scheduled_at__gte=now,
-                zoom_url__isnull=False
-            ).distinct().order_by('scheduled_at')
+            ).select_related('lesson', 'group', 'teacher').distinct()
 
-        # admin — всё расписание
-        return Lesson.objects.filter(
+        # Admin — всё расписание
+        return Schedule.objects.filter(
             scheduled_at__gte=now,
-            zoom_url__isnull=False
-        ).order_by('scheduled_at')
+        ).select_related('lesson', 'group', 'teacher')
+
+
+class ScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/schedule/<id>/ — детали занятия
+    PUT    /api/schedule/<id>/ — редактировать (teacher, admin)
+    DELETE /api/schedule/<id>/ — удалить (teacher, admin)
+    """
+    serializer_class = ScheduleSerializer
+    queryset = Schedule.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsTeacherOrAdmin()]

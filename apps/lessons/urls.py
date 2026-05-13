@@ -7,11 +7,13 @@ from .views import (
     MarkLessonCompleteView,
     MyCourseProgressView,
     ScheduleView,
+    ScheduleDetailView,
 )
 
 urlpatterns = [
     # Расписание
     path('schedule/', ScheduleView.as_view(), name='schedule'),
+    path('schedule/<int:pk>/', ScheduleDetailView.as_view(), name='schedule-detail'),
 
     # Уроки
     path('courses/<int:course_id>/lessons/', LessonListCreateView.as_view(), name='lesson-list'),
