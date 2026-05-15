@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { coursesApi } from '../../api/courses'
+import { paymentsApi } from '../../api/payments'
 import api from '../../api/client'
-import type { Course, Lesson, CourseProgress } from '../../types'
+import type { Course, Lesson, CourseProgress, CourseGroup } from '../../types'
 
 export default function StudentCoursePage() {
   const { id } = useParams<{ id: string }>()
@@ -10,7 +11,9 @@ export default function StudentCoursePage() {
   const [course, setCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [progress, setProgress] = useState<CourseProgress | null>(null)
+  const [group, setGroup] = useState<CourseGroup | null>(null)
   const [loading, setLoading] = useState(true)
+  const [payLoading, setPayLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -20,15 +23,30 @@ export default function StudentCoursePage() {
     Promise.all([
       coursesApi.detail(Number(id)),
       api.get<Lesson[]>(`/courses/${id}/lessons/`),
-    ]).then(([courseRes, lessonsRes]) => {
+      coursesApi.getGroups(Number(id)),
+    ]).then(([courseRes, lessonsRes, groupsRes]) => {
       setCourse(courseRes.data)
       setLessons(lessonsRes.data)
+      if (groupsRes.data.length > 0) setGroup(groupsRes.data[0])
     }).catch(err => {
       setError(`Ошибка ${err.response?.status}: ${JSON.stringify(err.response?.data)}`)
     }).finally(() => setLoading(false))
 
     coursesApi.progress(Number(id)).then(res => setProgress(res.data)).catch(() => {})
   }, [id])
+
+  const handlePay = async () => {
+    if (!group) return
+    setPayLoading(true)
+    try {
+      const res = await paymentsApi.createCheckout(group.id)
+      window.location.href = res.data.checkout_url
+    } catch {
+      alert('Не удалось создать сессию оплаты. Попробуйте позже.')
+    } finally {
+      setPayLoading(false)
+    }
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -50,16 +68,41 @@ export default function StudentCoursePage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div>
-        <button
-          onClick={() => navigate('/student/courses')}
-          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-3 flex items-center gap-1"
-        >
-          ← Назад к курсам
-        </button>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{course.title}</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">{course.description}</p>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Преподаватель: {course.teacher.full_name}</p>
+      <button onClick={() => navigate('/student/courses')}
+        className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-3 flex items-center gap-1">
+        ← Назад к курсам
+      </button>
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{course.title}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{course.description}</p>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <span className="text-sm text-gray-400 dark:text-gray-500">
+              Преподаватель: {course.teacher.full_name}
+            </span>
+            {course.has_live_sessions && (
+              <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                📹 Онлайн занятия
+              </span>
+            )}
+            {course.is_free ? (
+              <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                Бесплатно
+              </span>
+            ) : (
+              <span className="text-xs px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full">
+                ${course.price}
+              </span>
+            )}
+          </div>
+        </div>
+        {!course.is_free && group && (
+          <button onClick={handlePay} disabled={payLoading}
+            className="shrink-0 px-5 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors">
+            {payLoading ? 'Загрузка...' : `Оплатить $${course.price}`}
+          </button>
+        )}
       </div>
 
       {progress && (
@@ -81,11 +124,8 @@ export default function StudentCoursePage() {
         <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Уроки курса</h2>
         <div className="space-y-2">
           {lessons.map((lesson, index) => (
-            <button
-              key={lesson.id}
-              onClick={() => navigate(`/student/lessons/${lesson.id}`)}
-              className="w-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all text-left flex items-center gap-4"
-            >
+            <button key={lesson.id} onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+              className="w-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all text-left flex items-center gap-4">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 ${
                 lesson.is_completed
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
@@ -97,14 +137,7 @@ export default function StudentCoursePage() {
                 <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{lesson.title}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{lesson.description}</p>
               </div>
-              <div className="text-right shrink-0">
-                {lesson.scheduled_at && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    {new Date(lesson.scheduled_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                  </p>
-                )}
-                {lesson.zoom_url && <span className="text-xs text-blue-500">Zoom</span>}
-              </div>
+              {lesson.youtube_url && <span className="text-xs text-red-500 shrink-0">▶ Видео</span>}
             </button>
           ))}
         </div>

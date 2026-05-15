@@ -5,19 +5,20 @@ import { coursesApi } from '../../api/courses'
 import type { Course, Schedule } from '../../types'
 import api from '../../api/client'
 
-export default function StudentDashboard() {
+export default function TeacherDashboard() {
   const { user } = useAuthStore()
   const [courses, setCourses] = useState<Course[]>([])
   const [schedule, setSchedule] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    Promise.all([coursesApi.my(), api.get<Schedule[]>('/schedule/')])
-      .then(([c, s]) => { setCourses(c.data); setSchedule(s.data) })
-      .catch(() => setError('Не удалось загрузить данные.'))
-      .finally(() => setLoading(false))
+    Promise.all([
+      coursesApi.my(),
+      api.get<Schedule[]>('/schedule/'),
+    ]).then(([c, s]) => {
+      setCourses(c.data)
+      setSchedule(s.data)
+    }).finally(() => setLoading(false))
   }, [])
 
   if (loading) return (
@@ -26,29 +27,19 @@ export default function StudentDashboard() {
     </div>
   )
 
-  if (error) return (
-    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-12 text-center">
-      <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-      <button onClick={() => window.location.reload()} className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-        Обновить страницу
-      </button>
-    </div>
-  )
-
-  const nextLesson = schedule[0]
-
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
-          Добро пожаловать, {user?.full_name?.split(' ')[0] || 'Студент'}!
+          Добро пожаловать, {user?.full_name?.split(' ')[0]}!
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Ваш учебный кабинет</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Кабинет преподавателя</p>
       </div>
 
+      {/* Статистика */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Активных курсов</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Моих курсов</p>
           <p className="text-4xl font-semibold text-gray-900 dark:text-gray-100 mt-2">{courses.length}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
@@ -58,8 +49,8 @@ export default function StudentDashboard() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
           <p className="text-sm text-gray-500 dark:text-gray-400">Ближайшее занятие</p>
           <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mt-2">
-            {nextLesson
-              ? new Date(nextLesson.scheduled_at).toLocaleString('ru-RU', {
+            {schedule[0]
+              ? new Date(schedule[0].scheduled_at).toLocaleString('ru-RU', {
                   day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
                 })
               : '—'}
@@ -67,25 +58,43 @@ export default function StudentDashboard() {
         </div>
       </div>
 
+      {/* Мои курсы */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Мои курсы</h2>
-          <Link to="/student/courses" className="text-sm text-blue-600 hover:underline font-medium">Все курсы →</Link>
+          <Link to="/teacher/courses" className="text-sm text-blue-600 hover:underline font-medium">
+            Все курсы →
+          </Link>
         </div>
         {courses.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
-            <p className="text-gray-500 dark:text-gray-400">Вы ещё не записаны ни на один курс</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">У вас пока нет курсов</p>
+            <Link to="/teacher/courses/create"
+              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              Создать первый курс
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {courses.slice(0, 4).map(course => (
-              <Link key={course.id} to={`/student/courses/${course.id}`}
+              <Link key={course.id} to={`/teacher/courses/${course.id}`}
                 className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-1">{course.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4">{course.description}</p>
-                <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">{course.title}</h3>
+                  <span className={`shrink-0 ml-2 text-xs px-2 py-0.5 rounded-full ${
+                    course.is_published
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {course.is_published ? 'Опубликован' : 'Черновик'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-4">{course.description}</p>
+                <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
                   <span>{course.lessons_count} уроков</span>
-                  {course.has_live_sessions && <span className="text-blue-500">📹 Онлайн занятия</span>}
+                  {course.is_free
+                    ? <span className="text-green-600">Бесплатный</span>
+                    : <span className="text-orange-500">${course.price}</span>}
                 </div>
               </Link>
             ))}
@@ -93,18 +102,23 @@ export default function StudentDashboard() {
         )}
       </div>
 
+      {/* Ближайшие занятия */}
       {schedule.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Ближайшие занятия</h2>
-            <Link to="/student/schedule" className="text-sm text-blue-600 hover:underline font-medium">Всё расписание →</Link>
+            <Link to="/teacher/schedule" className="text-sm text-blue-600 hover:underline font-medium">
+              Всё расписание →
+            </Link>
           </div>
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden">
-            {schedule.slice(0, 3).map(item => (
-              <div key={item.id} className="flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            {schedule.slice(0, 4).map(item => (
+              <div key={item.id} className="flex items-center justify-between p-5">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-gray-100">{item.lesson_title}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.course_title} · {item.group_name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {item.course_title} · {item.group_name}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -114,9 +128,8 @@ export default function StudentDashboard() {
                   </p>
                   {item.zoom_url && (
                     <a href={item.zoom_url} target="_blank" rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 mt-1 text-xs font-medium text-blue-600 hover:underline">
-                      🔗 Подключиться
+                      className="text-xs text-blue-600 hover:underline mt-1 block">
+                      🔗 Zoom ссылка
                     </a>
                   )}
                 </div>

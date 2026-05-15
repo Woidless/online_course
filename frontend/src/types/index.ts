@@ -7,6 +7,7 @@ export interface User {
   role: Role
   avatar: string | null
   date_joined: string
+  is_active: boolean
 }
 
 export interface Course {
@@ -16,6 +17,9 @@ export interface Course {
   cover: string | null
   teacher: User
   is_published: boolean
+  is_free: boolean
+  price: string | null
+  has_live_sessions: boolean
   lessons_count: number
   created_at: string
   updated_at: string
@@ -52,8 +56,6 @@ export interface Lesson {
   description: string
   content: string
   youtube_url: string | null
-  zoom_url: string | null
-  scheduled_at: string | null
   order: number
   is_published: boolean
   materials: LessonMaterial[]
@@ -77,6 +79,19 @@ export interface LessonProgress {
   lesson_title: string
   completed: boolean
   completed_at: string | null
+}
+
+export interface Schedule {
+  id: number
+  group: number
+  group_name: string
+  course_title: string
+  lesson: number
+  lesson_title: string
+  teacher: number | null
+  teacher_name: string
+  scheduled_at: string
+  zoom_url: string | null
 }
 
 export interface Assignment {
@@ -170,12 +185,20 @@ export interface Certificate {
   verify_url: string
 }
 
-export interface Schedule {
+export interface Payment {
   id: number
-  title: string
+  student: number
+  student_name: string
+  group: number
+  group_name: string
   course_title: string
-  zoom_url: string | null
-  scheduled_at: string | null
+  amount: string
+  currency: string
+  status: 'pending' | 'paid' | 'failed' | 'refunded'
+  status_display: string
+  stripe_checkout_session_id: string | null
+  created_at: string
+  paid_at: string | null
 }
 
 export interface CourseProgress {

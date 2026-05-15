@@ -1,0 +1,8 @@
+touch frontend/src/App.tsx
+touch frontend/src/api/admin.ts
+touch frontend/src/pages/admin/AdminDashboard.tsx
+touch frontend/src/pages/admin/AdminUsers.tsx
+touch frontend/src/pages/admin/AdminCourses.tsx
+touch frontend/src/pages/admin/AdminCourseForm.tsx
+touch frontend/src/pages/admin/AdminCoursePage.tsx
+touch frontend/src/pages/admin/AdminPayments.tsx

@@ -3,24 +3,42 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import { useAuthStore } from './store/authStore'
 import DashboardLayout from './components/layout/DashboardLayout'
 
-// Auth pages
+// Auth
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import VerifyEmailPage from './pages/auth/VerifyEmailPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 
-// Student pages
-import StudentCoursePage from './pages/student/StudentCoursePage'
+// Student
 import StudentDashboard from './pages/student/StudentDashboard'
 import StudentCourses from './pages/student/StudentCourses'
+import StudentCoursePage from './pages/student/StudentCoursePage'
 import StudentSchedule from './pages/student/StudentSchedule'
 import StudentProfile from './pages/student/StudentProfile'
 import StudentLessonPage from './pages/student/StudentLessonPage'
 import StudentAssignmentPage from './pages/student/StudentAssignmentPage'
 import StudentQuizPage from './pages/student/StudentQuizPage'
+import PaymentSuccessPage from './pages/student/PaymentSuccessPage'
+import PaymentCancelPage from './pages/student/PaymentCancelPage'
 
-// Icons
+// Teacher
+import TeacherDashboard from './pages/teacher/TeacherDashboard'
+import TeacherCourses from './pages/teacher/TeacherCourses'
+import TeacherCoursePage from './pages/teacher/TeacherCoursePage'
+import TeacherSchedule from './pages/teacher/TeacherSchedule'
+import TeacherScheduleForm from './pages/teacher/TeacherScheduleForm'
+import TeacherSubmissions from './pages/teacher/TeacherSubmissions'
+import TeacherSubmissionDetail from './pages/teacher/TeacherSubmissionDetail'
+
+// Admin
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminCourses from './pages/admin/AdminCourses'
+import AdminCourseForm from './pages/admin/AdminCourseForm'
+import AdminCoursePage from './pages/admin/AdminCoursePage'
+import AdminPayments from './pages/admin/AdminPayments'
+
 const HomeIcon = () => (
   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -41,6 +59,21 @@ const UserIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
   </svg>
 )
+const ClipboardIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+)
+const UsersIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+)
+const CreditCardIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+  </svg>
+)
 
 const studentNav = [
   { to: '/student', label: 'Главная', icon: <HomeIcon /> },
@@ -49,8 +82,19 @@ const studentNav = [
   { to: '/student/profile', label: 'Профиль', icon: <UserIcon /> },
 ]
 
-const TeacherDashboard = () => <div className="p-8 text-xl">Teacher Dashboard — скоро</div>
-const AdminDashboard = () => <div className="p-8 text-xl">Admin Dashboard — скоро</div>
+const teacherNav = [
+  { to: '/teacher', label: 'Главная', icon: <HomeIcon /> },
+  { to: '/teacher/courses', label: 'Мои курсы', icon: <BookIcon /> },
+  { to: '/teacher/schedule', label: 'Расписание', icon: <CalendarIcon /> },
+  { to: '/teacher/submissions', label: 'Работы', icon: <ClipboardIcon /> },
+]
+
+const adminNav = [
+  { to: '/admin', label: 'Главная', icon: <HomeIcon /> },
+  { to: '/admin/users', label: 'Пользователи', icon: <UsersIcon /> },
+  { to: '/admin/courses', label: 'Курсы', icon: <BookIcon /> },
+  { to: '/admin/payments', label: 'Платежи', icon: <CreditCardIcon /> },
+]
 
 function DashboardRedirect() {
   const { user } = useAuthStore()
@@ -70,18 +114,16 @@ export default function App() {
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
+        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
 
-        {/* Redirect */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardRedirect />} />
         </Route>
 
         {/* Student */}
         <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-          <Route
-            path="/student"
-            element={<DashboardLayout navItems={studentNav} role="student" />}
-          >
+          <Route path="/student" element={<DashboardLayout navItems={studentNav} role="student" />}>
             <Route index element={<StudentDashboard />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="schedule" element={<StudentSchedule />} />
@@ -95,12 +137,29 @@ export default function App() {
 
         {/* Teacher */}
         <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
-          <Route path="/teacher/*" element={<TeacherDashboard />} />
+          <Route path="/teacher" element={<DashboardLayout navItems={teacherNav} role="teacher" />}>
+            <Route index element={<TeacherDashboard />} />
+            <Route path="courses" element={<TeacherCourses />} />
+            <Route path="courses/:id" element={<TeacherCoursePage />} />
+            <Route path="schedule" element={<TeacherSchedule />} />
+            <Route path="schedule/create" element={<TeacherScheduleForm />} />
+            <Route path="schedule/:id/edit" element={<TeacherScheduleForm />} />
+            <Route path="submissions" element={<TeacherSubmissions />} />
+            <Route path="submissions/:id" element={<TeacherSubmissionDetail />} />
+          </Route>
         </Route>
 
         {/* Admin */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="/admin" element={<DashboardLayout navItems={adminNav} role="admin" />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="courses" element={<AdminCourses />} />
+            <Route path="courses/create" element={<AdminCourseForm />} />
+            <Route path="courses/:id" element={<AdminCoursePage />} />
+            <Route path="courses/:id/edit" element={<AdminCourseForm />} />
+            <Route path="payments" element={<AdminPayments />} />
+          </Route>
         </Route>
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
