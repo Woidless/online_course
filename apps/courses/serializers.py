@@ -11,6 +11,7 @@ class CourseSerializer(serializers.ModelSerializer):
         write_only=True
     )
     lessons_count = serializers.SerializerMethodField()
+    is_enrolled = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -18,13 +19,23 @@ class CourseSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'cover',
             'teacher', 'teacher_id',
             'is_published', 'is_free', 'price', 'has_live_sessions',
-            'lessons_count',
+            'lessons_count', 'is_enrolled',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
     def get_lessons_count(self, obj):
         return obj.lessons.filter(is_published=True).count()
+
+    def get_is_enrolled(self, obj):
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user') or request.user.role != 'student':
+            return None
+        return Enrollment.objects.filter(
+            student=request.user,
+            group__course=obj,
+            status='active'
+        ).exists()
 
 
 class CourseGroupSerializer(serializers.ModelSerializer):
@@ -59,6 +70,29 @@ class EnrollmentSerializer(serializers.ModelSerializer):
             'status', 'enrolled_at',
         )
         read_only_fields = ('id', 'enrolled_at')
+
+
+class GroupBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseGroup
+        fields = ('id', 'name', 'starts_at')
+
+
+class CourseCatalogSerializer(serializers.ModelSerializer):
+    teacher = UserProfileSerializer(read_only=True)
+    lessons_count = serializers.SerializerMethodField()
+    groups = GroupBriefSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Course
+        fields = (
+            'id', 'title', 'description', 'cover',
+            'teacher', 'is_free', 'price', 'has_live_sessions',
+            'lessons_count', 'groups',
+        )
+
+    def get_lessons_count(self, obj):
+        return obj.lessons.filter(is_published=True).count()
 
 
 class EnrollStudentSerializer(serializers.Serializer):

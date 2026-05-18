@@ -5,10 +5,10 @@ import type { User } from '../types'
 interface AuthState {
   user: User | null
   accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
 
-  setAuth: (user: User, access: string, refresh: string) => void
+  setAuth: (user: User, access: string) => void
+  setAccessToken: (access: string) => void
   setUser: (user: User) => void
   logout: () => void
 }
@@ -18,35 +18,26 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) => {
-        localStorage.setItem('access_token', accessToken)
-        localStorage.setItem('refresh_token', refreshToken)
-        set({ user, accessToken, refreshToken, isAuthenticated: true })
+      setAuth: (user, accessToken) => {
+        set({ user, accessToken, isAuthenticated: true })
       },
+
+      setAccessToken: (accessToken) => set({ accessToken }),
 
       setUser: (user) => set({ user }),
 
       logout: () => {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isAuthenticated: false,
-        })
+        set({ user: null, accessToken: null, isAuthenticated: false })
       },
     }),
     {
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        // accessToken намеренно не сохраняется — только в памяти
       }),
     }
   )

@@ -7,10 +7,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
-from apps.users.permissions import IsAdmin, IsTeacher, IsTeacherOrAdmin
+from apps.users.permissions import IsAdmin, IsTeacher, IsTeacherOrAdmin, IsStudent
 from .models import Course, CourseGroup, Enrollment
 from .serializers import (
     CourseSerializer,
+    CourseCatalogSerializer,
     CourseGroupSerializer,
     EnrollmentSerializer,
     EnrollStudentSerializer,
@@ -187,6 +188,52 @@ class GroupEnrollmentListView(generics.ListAPIView):
         return Enrollment.objects.filter(
             group_id=self.kwargs['group_id']
         ).select_related('student', 'group')
+
+
+class CourseCatalogView(generics.ListAPIView):
+    """
+    GET /api/courses/catalog/ — все опубликованные курсы для студента (каталог)
+    """
+    serializer_class = CourseCatalogSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return Course.objects.filter(is_published=True).prefetch_related('groups')
+
+
+class SelfEnrollView(APIView):
+    """
+    POST /api/courses/groups/<group_id>/join/ — студент записывается сам на бесплатный курс
+    """
+    permission_classes = (IsStudent,)
+
+    def post(self, request, group_id):
+        group = get_object_or_404(CourseGroup, pk=group_id)
+        course = group.course
+
+        if not course.is_free:
+            return Response(
+                {'detail': 'Этот курс платный. Используйте страницу оплаты.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not course.is_published:
+            return Response(
+                {'detail': 'Курс недоступен.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if Enrollment.objects.filter(student=request.user, group=group).exists():
+            return Response(
+                {'detail': 'Вы уже записаны в эту группу.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        enrollment = Enrollment.objects.create(student=request.user, group=group)
+        return Response(
+            EnrollmentSerializer(enrollment).data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 class MyCoursesView(generics.ListAPIView):

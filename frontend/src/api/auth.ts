@@ -13,11 +13,11 @@ export const authApi = {
   login: (data: { email: string; password: string }) =>
     api.post<LoginResponse>('/users/auth/login/', data),
 
-  logout: (refresh: string) =>
-    api.post('/users/auth/logout/', { refresh }),
+  logout: () =>
+    api.post('/users/auth/logout/'),
 
-  refreshToken: (refresh: string) =>
-    api.post<{ access: string }>('/users/auth/token/refresh/', { refresh }),
+  refreshToken: () =>
+    api.post<{ access: string }>('/users/auth/token/refresh/'),
 
   verifyEmail: (token: string) =>
     api.get(`/users/auth/verify-email/${token}/`),

@@ -8,12 +8,18 @@ from .views import (
     MyCourseProgressView,
     ScheduleView,
     ScheduleDetailView,
+    SectionListCreateView,
+    SectionDetailView,
 )
 
 urlpatterns = [
     # Расписание
     path('schedule/', ScheduleView.as_view(), name='schedule'),
     path('schedule/<int:pk>/', ScheduleDetailView.as_view(), name='schedule-detail'),
+
+    # Разделы
+    path('courses/<int:course_id>/sections/', SectionListCreateView.as_view(), name='section-list'),
+    path('sections/<int:pk>/', SectionDetailView.as_view(), name='section-detail'),
 
     # Уроки
     path('courses/<int:course_id>/lessons/', LessonListCreateView.as_view(), name='lesson-list'),

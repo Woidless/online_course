@@ -19,8 +19,6 @@ class CertificateSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'uid', 'pdf', 'issued_at')
 
     def get_verify_url(self, obj):
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(f'/api/certificates/verify/{obj.uid}/')
-        return f'/api/certificates/verify/{obj.uid}/'
+        from django.conf import settings
+        return f"{settings.FRONTEND_URL}/certificate/verify/{obj.uid}"
     

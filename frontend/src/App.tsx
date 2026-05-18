@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { useAuthStore } from './store/authStore'
+import { refreshSession } from './api/client'
 import DashboardLayout from './components/layout/DashboardLayout'
 
 // Auth
@@ -16,11 +18,13 @@ import StudentCourses from './pages/student/StudentCourses'
 import StudentCoursePage from './pages/student/StudentCoursePage'
 import StudentSchedule from './pages/student/StudentSchedule'
 import StudentProfile from './pages/student/StudentProfile'
+import StudentCourseCatalog from './pages/student/StudentCourseCatalog'
 import StudentLessonPage from './pages/student/StudentLessonPage'
 import StudentAssignmentPage from './pages/student/StudentAssignmentPage'
 import StudentQuizPage from './pages/student/StudentQuizPage'
 import PaymentSuccessPage from './pages/student/PaymentSuccessPage'
 import PaymentCancelPage from './pages/student/PaymentCancelPage'
+import CertificateVerifyPage from './pages/CertificateVerifyPage'
 
 // Teacher
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
@@ -38,6 +42,10 @@ import AdminCourses from './pages/admin/AdminCourses'
 import AdminCourseForm from './pages/admin/AdminCourseForm'
 import AdminCoursePage from './pages/admin/AdminCoursePage'
 import AdminPayments from './pages/admin/AdminPayments'
+import AdminReports from './pages/admin/AdminReports'
+
+// Teacher (quiz form)
+import TeacherQuizForm from './pages/teacher/TeacherQuizForm'
 
 const HomeIcon = () => (
   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,10 +82,16 @@ const CreditCardIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
   </svg>
 )
+const ChartIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+)
 
 const studentNav = [
   { to: '/student', label: 'Главная', icon: <HomeIcon /> },
-  { to: '/student/courses', label: 'Мои курсы', icon: <BookIcon /> },
+  { to: '/student/catalog', label: 'Каталог', icon: <BookIcon /> },
+  { to: '/student/courses', label: 'Мои курсы', icon: <ClipboardIcon /> },
   { to: '/student/schedule', label: 'Расписание', icon: <CalendarIcon /> },
   { to: '/student/profile', label: 'Профиль', icon: <UserIcon /> },
 ]
@@ -94,6 +108,7 @@ const adminNav = [
   { to: '/admin/users', label: 'Пользователи', icon: <UsersIcon /> },
   { to: '/admin/courses', label: 'Курсы', icon: <BookIcon /> },
   { to: '/admin/payments', label: 'Платежи', icon: <CreditCardIcon /> },
+  { to: '/admin/reports', label: 'Отчёты', icon: <ChartIcon /> },
 ]
 
 function DashboardRedirect() {
@@ -105,6 +120,14 @@ function DashboardRedirect() {
 }
 
 export default function App() {
+  const { isAuthenticated, accessToken, logout } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated && !accessToken) {
+      refreshSession().catch(() => logout())
+    }
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
@@ -116,6 +139,7 @@ export default function App() {
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/payment/success" element={<PaymentSuccessPage />} />
         <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+        <Route path="/certificate/verify/:uid" element={<CertificateVerifyPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardRedirect />} />
@@ -125,6 +149,7 @@ export default function App() {
         <Route element={<ProtectedRoute allowedRoles={['student']} />}>
           <Route path="/student" element={<DashboardLayout navItems={studentNav} role="student" />}>
             <Route index element={<StudentDashboard />} />
+            <Route path="catalog" element={<StudentCourseCatalog />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="schedule" element={<StudentSchedule />} />
             <Route path="courses" element={<StudentCourses />} />
@@ -146,6 +171,7 @@ export default function App() {
             <Route path="schedule/:id/edit" element={<TeacherScheduleForm />} />
             <Route path="submissions" element={<TeacherSubmissions />} />
             <Route path="submissions/:id" element={<TeacherSubmissionDetail />} />
+            <Route path="lessons/:lessonId/quizzes/create" element={<TeacherQuizForm />} />
           </Route>
         </Route>
 
@@ -159,6 +185,7 @@ export default function App() {
             <Route path="courses/:id" element={<AdminCoursePage />} />
             <Route path="courses/:id/edit" element={<AdminCourseForm />} />
             <Route path="payments" element={<AdminPayments />} />
+            <Route path="reports" element={<AdminReports />} />
           </Route>
         </Route>
 

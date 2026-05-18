@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { adminApi } from '../../api/admin'
-import type { User } from '../../types'
 import type { User, Role } from '../../types'
 
 export default function AdminUsers() {
@@ -10,18 +9,29 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const pageSize = 20
 
   useEffect(() => {
     setLoading(true)
-    adminApi.getUsers(roleFilter !== 'all' ? roleFilter : undefined)
-      .then(res => setUsers(res.data))
-      .finally(() => setLoading(false))
+    setPage(1)
   }, [roleFilter])
+
+  useEffect(() => {
+    setLoading(true)
+    adminApi.getUsers(roleFilter !== 'all' ? roleFilter : undefined, page)
+      .then(res => {
+        setUsers(res.data.results)
+        setTotalCount(res.data.count)
+      })
+      .finally(() => setLoading(false))
+  }, [roleFilter, page])
 
   const handleRoleChange = async (user: User, newRole: string) => {
     try {
       setActionLoading(user.id)
-      await adminApi.updateUser(user.id, { role: newRole })
+      await adminApi.updateUser(user.id, { role: newRole as Role })
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole as Role } : u))
     } catch {
       alert('Не удалось изменить роль')
@@ -139,6 +149,31 @@ export default function AdminUsers() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {totalCount > pageSize && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Показано {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} из {totalCount}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => p - 1)}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              Назад
+            </button>
+            <span className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400">
+              {page} / {Math.ceil(totalCount / pageSize)}
+            </span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= Math.ceil(totalCount / pageSize)}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              Вперёд
+            </button>
+          </div>
         </div>
       )}
     </div>

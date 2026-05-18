@@ -1,22 +1,37 @@
 import axios from 'axios'
+import { useAuthStore } from '../store/authStore'
 
 const api = axios.create({
   baseURL: '/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
 })
 
-// Добавляем токен к каждому запросу
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  const token = useAuthStore.getState().accessToken
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// Обновляем токен при 401
+// Единственный промис на обновление токена — если несколько запросов
+// одновременно получили 401, они все ждут одного refresh-вызова.
+let refreshPromise: Promise<string> | null = null
+
+export function refreshSession(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post<{ access: string }>('/api/users/auth/token/refresh/', {}, { withCredentials: true })
+      .then(({ data }) => {
+        useAuthStore.getState().setAccessToken(data.access)
+        return data.access
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -24,22 +39,12 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
-
       try {
-        const refresh = localStorage.getItem('refresh_token')
-        if (!refresh) throw new Error('No refresh token')
-
-        const { data } = await axios.post('/api/users/auth/token/refresh/', {
-          refresh,
-        })
-
-        localStorage.setItem('access_token', data.access)
-        original.headers.Authorization = `Bearer ${data.access}`
-
+        const token = await refreshSession()
+        original.headers.Authorization = `Bearer ${token}`
         return api(original)
       } catch {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
+        useAuthStore.getState().logout()
         window.location.href = '/login'
       }
     }

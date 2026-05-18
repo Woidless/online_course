@@ -8,12 +8,13 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.users.permissions import IsTeacherOrAdmin, IsStudent
 from apps.courses.models import Course, Enrollment
-from .models import Lesson, LessonMaterial, LessonProgress, Schedule
+from .models import Lesson, LessonMaterial, LessonProgress, Schedule, Section
 from .serializers import (
     LessonSerializer,
     LessonMaterialSerializer,
     LessonProgressSerializer,
     ScheduleSerializer,
+    SectionSerializer,
 )
 
 
@@ -154,6 +155,43 @@ class MyCourseProgressView(APIView):
             'completed_lessons': completed_lessons,
             'progress_percent': percent,
         })
+
+
+class SectionListCreateView(generics.ListCreateAPIView):
+    """
+    GET  /api/courses/<course_id>/sections/ — разделы курса (с уроками)
+    POST /api/courses/<course_id>/sections/ — создать раздел (teacher, admin)
+    """
+    serializer_class = SectionSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsTeacherOrAdmin()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        return Section.objects.filter(
+            course_id=self.kwargs['course_id']
+        ).prefetch_related('lessons__materials')
+
+    def perform_create(self, serializer):
+        course = get_object_or_404(Course, pk=self.kwargs['course_id'])
+        serializer.save(course=course)
+
+
+class SectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/sections/<id>/ — детали раздела
+    PATCH  /api/sections/<id>/ — редактировать (teacher, admin)
+    DELETE /api/sections/<id>/ — удалить (teacher, admin)
+    """
+    serializer_class = SectionSerializer
+    queryset = Section.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsTeacherOrAdmin()]
 
 
 class ScheduleView(generics.ListCreateAPIView):

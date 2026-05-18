@@ -5,6 +5,8 @@ from .views import (
     SubmitAssignmentView,
     SubmissionListView,
     MySubmissionsView,
+    TeacherSubmissionsView,
+    SubmissionDetailView,
     GradeSubmissionView,
     ReturnSubmissionView,
 )
@@ -18,6 +20,8 @@ urlpatterns = [
 
     # Ответы
     path('submissions/my/', MySubmissionsView.as_view(), name='submission-my'),
+    path('submissions/teacher/', TeacherSubmissionsView.as_view(), name='submission-teacher'),
+    path('submissions/<int:pk>/', SubmissionDetailView.as_view(), name='submission-detail'),
     path('submissions/<int:submission_id>/grade/', GradeSubmissionView.as_view(), name='submission-grade'),
     path('submissions/<int:submission_id>/return/', ReturnSubmissionView.as_view(), name='submission-return'),
 ]

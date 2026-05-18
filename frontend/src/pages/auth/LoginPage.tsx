@@ -16,7 +16,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const { data } = await authApi.login(form)
-      setAuth(data.user, data.access, data.refresh)
+      setAuth(data.user, data.access)
       navigate('/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Неверный email или пароль')

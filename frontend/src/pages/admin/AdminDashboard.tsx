@@ -15,9 +15,9 @@ export default function AdminDashboard() {
       adminApi.getCourses(),
       adminApi.getPayments(),
     ]).then(([u, c, p]) => {
-      setUsers(u.data)
+      setUsers(u.data.results)
       setCourses(c.data)
-      setPayments(p.data)
+      setPayments(p.data.results)
     }).finally(() => setLoading(false))
   }, [])
 

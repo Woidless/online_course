@@ -1,10 +1,10 @@
 import api from './client'
-import type { User, Course, CourseGroup, Enrollment, Payment } from '../types'
+import type { User, Course, CourseGroup, Enrollment, Payment, PaginatedResponse } from '../types'
 
 export const adminApi = {
   // Пользователи
-  getUsers: (role?: string) =>
-    api.get<User[]>(`/users/${role ? `?role=${role}` : ''}`),
+  getUsers: (role?: string, page = 1) =>
+    api.get<PaginatedResponse<User>>(`/users/?page=${page}${role ? `&role=${role}` : ''}`),
   getUser: (id: number) => api.get<User>(`/users/${id}/`),
   updateUser: (id: number, data: Partial<User> & { role?: string }) =>
     api.patch<User>(`/users/${id}/`, data),
@@ -39,5 +39,6 @@ export const adminApi = {
     api.get<Enrollment[]>(`/courses/groups/${groupId}/students/`),
 
   // Платежи
-  getPayments: () => api.get<Payment[]>('/payments/'),
+  getPayments: (page = 1) => api.get<PaginatedResponse<Payment>>(`/payments/?page=${page}`),
+  confirmPayment: (id: number) => api.post<Payment>(`/payments/${id}/confirm/`),
 }

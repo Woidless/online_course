@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { coursesApi } from '../../api/courses'
 import api from '../../api/client'
-import type {Submission, Assignment } from '../../types'
+import type { Submission } from '../../types'
 
 export default function TeacherSubmissions() {
   const navigate = useNavigate()
@@ -11,23 +10,9 @@ export default function TeacherSubmissions() {
   const [filter, setFilter] = useState<'all' | 'submitted' | 'graded'>('submitted')
 
   useEffect(() => {
-    // Загружаем все задания своих курсов, потом сданные работы
-    coursesApi.my().then(async coursesRes => {
-      const allSubmissions: Submission[] = []
-      for (const course of coursesRes.data) {
-        const lessonsRes = await api.get<any[]>(`/courses/${course.id}/lessons/`)
-        for (const lesson of lessonsRes.data) {
-          const assignmentsRes = await api.get<Assignment[]>(`/lessons/${lesson.id}/assignments/`)
-          for (const assignment of assignmentsRes.data) {
-            try {
-              const subsRes = await api.get<Submission[]>(`/assignments/${assignment.id}/submissions/`)
-              allSubmissions.push(...subsRes.data)
-            } catch {}
-          }
-        }
-      }
-      setSubmissions(allSubmissions)
-    }).finally(() => setLoading(false))
+    api.get<Submission[]>('/submissions/teacher/')
+      .then(res => setSubmissions(res.data))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = submissions.filter(s => {
@@ -47,7 +32,6 @@ export default function TeacherSubmissions() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Сданные работы</h1>
 
-      {/* Фильтры */}
       <div className="flex gap-2">
         {([['submitted', 'Ожидают проверки'], ['graded', 'Проверено'], ['all', 'Все']] as const).map(([key, label]) => (
           <button key={key} onClick={() => setFilter(key)}
@@ -57,7 +41,7 @@ export default function TeacherSubmissions() {
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}>
             {label}
-            {key === 'submitted' && (
+            {key === 'submitted' && submissions.filter(s => s.status === 'submitted').length > 0 && (
               <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
                 {submissions.filter(s => s.status === 'submitted').length}
               </span>
@@ -88,11 +72,6 @@ export default function TeacherSubmissions() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {submission.grade && (
-                  <span className="text-sm font-semibold text-green-600">
-                    {submission.grade.score}/{submission.max_score}
-                  </span>
-                )}
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                   submission.status === 'submitted'
                     ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
@@ -100,7 +79,9 @@ export default function TeacherSubmissions() {
                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
                 }`}>
-                  {submission.status === 'submitted' ? 'Ожидает' : submission.status === 'graded' ? 'Проверено' : submission.status}
+                  {submission.status === 'submitted' ? 'Ожидает'
+                    : submission.status === 'graded' ? 'Проверено'
+                    : 'На доработке'}
                 </span>
               </div>
             </div>

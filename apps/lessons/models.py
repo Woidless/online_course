@@ -3,6 +3,25 @@ from apps.courses.models import Course, CourseGroup
 from apps.users.models import User
 
 
+class Section(models.Model):
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='sections',
+        verbose_name='Курс'
+    )
+    title = models.CharField(max_length=255, verbose_name='Название раздела')
+    order = models.PositiveIntegerField(default=0, verbose_name='Порядок')
+
+    class Meta:
+        verbose_name = 'Раздел'
+        verbose_name_plural = 'Разделы'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.course.title} — {self.title}'
+
+
 class Lesson(models.Model):
     course = models.ForeignKey(
         Course,
@@ -10,12 +29,24 @@ class Lesson(models.Model):
         related_name='lessons',
         verbose_name='Курс'
     )
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lessons',
+        verbose_name='Раздел'
+    )
     title = models.CharField(max_length=255, verbose_name='Название')
     description = models.TextField(blank=True, verbose_name='Описание')
     content = models.TextField(blank=True, verbose_name='Текстовый контент')
     youtube_url = models.URLField(
         null=True, blank=True,
         verbose_name='Ссылка на YouTube'
+    )
+    colab_url = models.URLField(
+        null=True, blank=True,
+        verbose_name='Ссылка на Google Colab'
     )
     order = models.PositiveIntegerField(default=0, verbose_name='Порядок')
     is_published = models.BooleanField(default=False, verbose_name='Опубликован')

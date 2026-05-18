@@ -21,8 +21,28 @@ export interface Course {
   price: string | null
   has_live_sessions: boolean
   lessons_count: number
+  is_enrolled: boolean | null
   created_at: string
   updated_at: string
+}
+
+export interface GroupBrief {
+  id: number
+  name: string
+  starts_at: string
+}
+
+export interface CourseCatalog {
+  id: number
+  title: string
+  description: string
+  cover: string | null
+  teacher: User
+  is_free: boolean
+  price: string | null
+  has_live_sessions: boolean
+  lessons_count: number
+  groups: GroupBrief[]
 }
 
 export interface CourseGroup {
@@ -49,13 +69,23 @@ export interface Enrollment {
   enrolled_at: string
 }
 
+export interface Section {
+  id: number
+  course: number
+  title: string
+  order: number
+  lessons: Lesson[]
+}
+
 export interface Lesson {
   id: number
   course: number
+  section: number | null
   title: string
   description: string
   content: string
   youtube_url: string | null
+  colab_url: string | null
   order: number
   is_published: boolean
   materials: LessonMaterial[]
@@ -98,10 +128,10 @@ export interface Assignment {
   id: number
   lesson: number
   lesson_title: string
+  lesson_colab_url: string | null
   title: string
   description: string
   due_date: string | null
-  max_score: number
   submissions_count: number | null
   created_at: string
   updated_at: string
@@ -109,7 +139,6 @@ export interface Assignment {
 
 export interface Grade {
   id: number
-  score: number
   feedback: string
   teacher_name: string
   graded_at: string
@@ -124,7 +153,6 @@ export interface Submission {
   content: string
   file: string | null
   status: 'submitted' | 'graded' | 'returned'
-  max_score: number
   grade: Grade | null
   submitted_at: string
   updated_at: string

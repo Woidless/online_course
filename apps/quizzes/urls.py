@@ -9,10 +9,12 @@ from .views import (
     SubmitQuizView,
     MyQuizAttemptsView,
     QuizAttemptsView,
+    ExportQuizPerformanceView,
 )
 
 urlpatterns = [
     # Тесты
+    path('quizzes/export/performance/', ExportQuizPerformanceView.as_view(), name='quiz-export-performance'),
     path('lessons/<int:lesson_id>/quizzes/', QuizListCreateView.as_view(), name='quiz-list'),
     path('quizzes/<int:pk>/', QuizDetailView.as_view(), name='quiz-detail'),
     path('quizzes/<int:quiz_id>/start/', StartQuizView.as_view(), name='quiz-start'),

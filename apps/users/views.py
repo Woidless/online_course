@@ -25,6 +25,8 @@ from .serializers import (
     PasswordResetConfirmSerializer,
 )
 from .permissions import IsAdmin
+from .throttles import LoginRateThrottle, RegisterRateThrottle, PasswordResetRateThrottle
+from .pagination import UserPagination
 
 
 def get_tokens_for_user(user):
@@ -37,6 +39,7 @@ def get_tokens_for_user(user):
 
 class RegisterView(APIView):
     permission_classes = (AllowAny,)
+    throttle_classes = (RegisterRateThrottle,)
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -88,6 +91,7 @@ class VerifyEmailView(APIView):
 
 class LoginView(APIView):
     permission_classes = (AllowAny,)
+    throttle_classes = (LoginRateThrottle,)
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -112,10 +116,20 @@ class LoginView(APIView):
             )
 
         tokens = get_tokens_for_user(user)
-        return Response({
+        response = Response({
             'user': UserProfileSerializer(user).data,
-            **tokens
+            'access': tokens['access'],
         })
+        response.set_cookie(
+            'refresh_token',
+            tokens['refresh'],
+            max_age=7 * 24 * 3600,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            path='/',
+        )
+        return response
 
 
 class LogoutView(APIView):
@@ -123,15 +137,51 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data.get('refresh')
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response({'detail': 'Вы вышли из системы.'})
+            refresh_token = request.COOKIES.get('refresh_token')
+            if refresh_token:
+                RefreshToken(refresh_token).blacklist()
         except Exception:
+            pass
+        response = Response({'detail': 'Вы вышли из системы.'})
+        response.delete_cookie('refresh_token', path='/')
+        return response
+
+
+class CookieTokenRefreshView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
             return Response(
-                {'detail': 'Неверный токен.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'Требуется аутентификация.'},
+                status=status.HTTP_401_UNAUTHORIZED
             )
+
+        try:
+            old_token = RefreshToken(refresh_token)
+            old_token.blacklist()
+            user = User.objects.get(id=old_token['user_id'])
+            tokens = get_tokens_for_user(user)
+
+            response = Response({'access': tokens['access']})
+            response.set_cookie(
+                'refresh_token',
+                tokens['refresh'],
+                max_age=7 * 24 * 3600,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                path='/',
+            )
+            return response
+        except Exception:
+            response = Response(
+                {'detail': 'Сессия истекла. Войдите снова.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            response.delete_cookie('refresh_token', path='/')
+            return response
 
 
 class MeView(generics.RetrieveUpdateAPIView):
@@ -171,6 +221,7 @@ class ChangePasswordView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = (AllowAny,)
+    throttle_classes = (PasswordResetRateThrottle,)
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -232,6 +283,7 @@ class PasswordResetConfirmView(APIView):
 class AdminUserListView(generics.ListAPIView):
     serializer_class = AdminUserSerializer
     permission_classes = (IsAdmin,)
+    pagination_class = UserPagination
 
     def get_queryset(self):
         queryset = User.objects.all().order_by('-date_joined')

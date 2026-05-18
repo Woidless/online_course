@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Lesson, LessonMaterial, LessonProgress, Schedule
+from .models import Lesson, LessonMaterial, LessonProgress, Schedule, Section
 
 
 class LessonMaterialSerializer(serializers.ModelSerializer):
@@ -17,8 +17,8 @@ class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = (
-            'id', 'course', 'title', 'description', 'content',
-            'youtube_url',
+            'id', 'course', 'section', 'title', 'description', 'content',
+            'youtube_url', 'colab_url',
             'order', 'is_published', 'materials',
             'is_completed', 'created_at', 'updated_at',
         )
@@ -35,6 +35,28 @@ class LessonSerializer(serializers.ModelSerializer):
             lesson=obj,
             completed=True
         ).exists()
+
+
+class SectionSerializer(serializers.ModelSerializer):
+    lessons = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Section
+        fields = ('id', 'course', 'title', 'order', 'lessons')
+        read_only_fields = ('id',)
+
+    def get_lessons(self, obj):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        if user and user.role in ('teacher', 'admin'):
+            qs = obj.lessons.all()
+        elif user and user.role == 'student':
+            qs = obj.lessons.filter(is_published=True)
+        else:
+            qs = obj.lessons.filter(is_published=True)
+
+        return LessonSerializer(qs, many=True, context=self.context).data
 
 
 class LessonProgressSerializer(serializers.ModelSerializer):

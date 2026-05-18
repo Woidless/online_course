@@ -20,10 +20,7 @@ export default function DashboardLayout({ navItems, role }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const handleLogout = async () => {
-    const refresh = localStorage.getItem('refresh_token')
-    if (refresh) {
-      try { await authApi.logout(refresh) } catch {}
-    }
+    try { await authApi.logout() } catch {}
     logout()
     navigate('/login')
   }

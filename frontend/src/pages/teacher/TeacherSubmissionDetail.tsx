@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../api/client'
 import type { Submission } from '../../types'
 
+const mediaPath = (url: string) => { try { return new URL(url).pathname } catch { return url } }
+
 export default function TeacherSubmissionDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [submission, setSubmission] = useState<Submission | null>(null)
-  const [score, setScore] = useState('')
   const [feedback, setFeedback] = useState('')
   const [loading, setLoading] = useState(true)
   const [grading, setGrading] = useState(false)
@@ -18,7 +19,6 @@ export default function TeacherSubmissionDetail() {
       .then(res => {
         setSubmission(res.data)
         if (res.data.grade) {
-          setScore(String(res.data.grade.score))
           setFeedback(res.data.grade.feedback)
         }
       })
@@ -30,10 +30,7 @@ export default function TeacherSubmissionDetail() {
     if (!id) return
     setGrading(true)
     try {
-      await api.post(`/submissions/${id}/grade/`, {
-        score: Number(score),
-        feedback,
-      })
+      await api.post(`/submissions/${id}/grade/`, { feedback })
       navigate('/teacher/submissions')
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Ошибка при выставлении оценки')
@@ -83,13 +80,19 @@ export default function TeacherSubmissionDetail() {
       {/* Ответ студента */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
         <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Ответ студента</h2>
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-          {submission.content || 'Текстовый ответ не предоставлен'}
-        </div>
+        {submission.content ? (
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+            {submission.content}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 dark:text-gray-500 italic">Текстовый ответ не предоставлен</p>
+        )}
         {submission.file && (
-          <a href={submission.file} target="_blank" rel="noopener noreferrer"
+          <a
+            href={mediaPath(submission.file)}
+            download
             className="inline-flex items-center gap-2 mt-3 text-sm text-blue-600 hover:underline">
-            📎 Прикреплённый файл
+            📎 Скачать файл
           </a>
         )}
       </div>
@@ -98,20 +101,11 @@ export default function TeacherSubmissionDetail() {
       <form onSubmit={handleGrade}
         className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4">
         <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {submission.status === 'graded' ? 'Редактировать оценку' : 'Выставить оценку'}
+          {submission.status === 'graded' ? 'Редактировать комментарий' : 'Оставить комментарий'}
         </h2>
 
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1.5">
-            Балл <span className="text-gray-400">(макс. {submission.max_score})</span>
-          </label>
-          <input type="number" value={score} onChange={e => setScore(e.target.value)}
-            min={0} max={submission.max_score} required
-            className="w-32 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1.5">Комментарий</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1.5">Комментарий к работе</label>
           <textarea value={feedback} onChange={e => setFeedback(e.target.value)}
             rows={4} placeholder="Оставьте комментарий к работе..."
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
@@ -120,7 +114,20 @@ export default function TeacherSubmissionDetail() {
         <div className="flex gap-3">
           <button type="submit" disabled={grading}
             className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {grading ? 'Сохранение...' : submission.status === 'graded' ? 'Обновить оценку' : 'Выставить оценку'}
+            {grading ? 'Сохранение...' : submission.status === 'graded' ? 'Обновить' : 'Принять работу'}
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await api.post(`/submissions/${id}/return/`)
+                navigate('/teacher/submissions')
+              } catch {
+                alert('Ошибка')
+              }
+            }}
+            className="px-6 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg border border-red-200 dark:border-red-700 hover:bg-red-100 transition-colors">
+            Вернуть на доработку
           </button>
         </div>
       </form>

@@ -13,7 +13,7 @@ export default function PaymentSuccessPage() {
     const timer = setTimeout(() => {
       paymentsApi.list()
         .then(res => {
-          const paid = res.data.find(p =>
+          const paid = res.data.results.find(p =>
             p.stripe_checkout_session_id === sessionId || p.status === 'paid'
           )
           if (paid) setPayment(paid)

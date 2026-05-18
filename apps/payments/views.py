@@ -2,6 +2,10 @@ import stripe
 from django.conf import settings
 from django.utils import timezone
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+from django.db import transaction
+
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,6 +15,7 @@ from apps.users.permissions import IsStudent, IsTeacherOrAdmin
 from apps.courses.models import CourseGroup, Enrollment
 from .models import Payment
 from .serializers import PaymentSerializer, CreateCheckoutSessionSerializer
+from .pagination import PaymentPagination
 
 
 class CreateCheckoutSessionView(APIView):
@@ -49,8 +54,6 @@ class CreateCheckoutSessionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-
         # Создаём Stripe Checkout Session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -75,16 +78,20 @@ class CreateCheckoutSessionView(APIView):
         )
 
         # Создаём Payment со статусом pending
-        Payment.objects.update_or_create(
-            student=request.user,
-            group=group,
-            defaults={
-                'amount': course.price,
-                'currency': 'USD',
-                'status': Payment.Status.PENDING,
-                'stripe_checkout_session_id': checkout_session.id,
-            }
-        )
+        with transaction.atomic():
+            Payment.objects.select_for_update().filter(
+                student=request.user, group=group
+            )
+            Payment.objects.update_or_create(
+                student=request.user,
+                group=group,
+                defaults={
+                    'amount': course.price,
+                    'currency': 'USD',
+                    'status': Payment.Status.PENDING,
+                    'stripe_checkout_session_id': checkout_session.id,
+                }
+            )
 
         return Response({'checkout_url': checkout_session.url})
 
@@ -96,6 +103,7 @@ class PaymentListView(generics.ListAPIView):
     """
     serializer_class = PaymentSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = PaymentPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -116,3 +124,32 @@ class PaymentDetailView(generics.RetrieveAPIView):
         if user.role == 'student':
             return Payment.objects.filter(student=user)
         return Payment.objects.all()
+
+
+class PaymentConfirmView(APIView):
+    """
+    POST /api/payments/<pk>/confirm/
+    Ручное подтверждение оплаты администратором (для случаев когда webhook не дошёл).
+    """
+    permission_classes = (IsTeacherOrAdmin,)
+
+    def post(self, request, pk):
+        try:
+            payment = Payment.objects.get(pk=pk)
+        except Payment.DoesNotExist:
+            return Response({'detail': 'Платёж не найден.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if payment.status == Payment.Status.PAID:
+            return Response({'detail': 'Платёж уже подтверждён.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment.status = Payment.Status.PAID
+        payment.paid_at = timezone.now()
+        payment.save()
+
+        Enrollment.objects.get_or_create(
+            student=payment.student,
+            group=payment.group,
+            defaults={'status': Enrollment.Status.ACTIVE}
+        )
+
+        return Response(PaymentSerializer(payment).data)

@@ -20,7 +20,7 @@ export default function AdminCourseForm() {
   const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
-    adminApi.getUsers('teacher').then(res => setTeachers(res.data))
+    adminApi.getUsers('teacher').then(res => setTeachers(res.data.results))
 
     if (isEdit && id) {
       api.get(`/courses/${id}/`).then(res => {

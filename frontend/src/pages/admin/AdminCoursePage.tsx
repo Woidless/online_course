@@ -34,8 +34,8 @@ export default function AdminCoursePage() {
     ]).then(([c, g, s, t]) => {
       setCourse(c.data)
       setGroups(g.data)
-      setAllStudents(s.data)
-      setTeachers(t.data)
+      setAllStudents(s.data.results)
+      setTeachers(t.data.results)
       if (g.data.length > 0) setActiveGroup(g.data[0])
     }).finally(() => setLoading(false))
   }, [id])

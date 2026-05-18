@@ -1,5 +1,9 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.http import HttpResponse
+
+import csv
+from io import StringIO
 
 from rest_framework import generics, status
 from rest_framework.views import APIView
@@ -171,12 +175,29 @@ class SubmitQuizView(APIView):
             status=QuizAttempt.Status.IN_PROGRESS
         )
 
+        now = timezone.now()
+        quiz = attempt.quiz
+
+        # Проверяем не истекло ли время
+        if quiz.time_limit:
+            from datetime import timedelta
+            deadline = attempt.started_at + timedelta(minutes=quiz.time_limit)
+            if now > deadline:
+                attempt.status = QuizAttempt.Status.TIMED_OUT
+                attempt.finished_at = deadline
+                attempt.score = 0.0
+                attempt.save()
+                return Response(
+                    {'detail': 'Время на выполнение теста истекло.', 'status': 'timed_out'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         serializer = SubmitQuizSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         attempt.answers = serializer.validated_data['answers']
         attempt.status = QuizAttempt.Status.COMPLETED
-        attempt.finished_at = timezone.now()
+        attempt.finished_at = now
         attempt.score = attempt.calculate_score()
         attempt.save()
 
@@ -208,3 +229,64 @@ class QuizAttemptsView(generics.ListAPIView):
         return QuizAttempt.objects.filter(
             quiz_id=self.kwargs['quiz_id']
         ).select_related('student', 'quiz')
+
+
+class ExportQuizPerformanceView(APIView):
+    """
+    GET /api/quizzes/export/performance/
+    CSV with best quiz attempt per student per quiz.
+    """
+    permission_classes = (IsTeacherOrAdmin,)
+
+    def get(self, request):
+        attempts = QuizAttempt.objects.filter(
+            status=QuizAttempt.Status.COMPLETED
+        ).select_related('student', 'quiz', 'quiz__lesson', 'quiz__lesson__course')
+
+        # Group by (student, quiz), keep best score
+        data = {}
+        for a in attempts:
+            key = (a.student_id, a.quiz_id)
+            score = a.score or 0
+            if key not in data:
+                data[key] = {
+                    'student_name': a.student.full_name,
+                    'email': a.student.email,
+                    'course': a.quiz.lesson.course.title,
+                    'lesson': a.quiz.lesson.title,
+                    'quiz': a.quiz.title,
+                    'best_score': score,
+                    'passing_score': a.quiz.passing_score,
+                    'count': 1,
+                    'last_attempt': a.finished_at,
+                }
+            else:
+                data[key]['count'] += 1
+                if score > data[key]['best_score']:
+                    data[key]['best_score'] = score
+                if a.finished_at and (data[key]['last_attempt'] is None or a.finished_at > data[key]['last_attempt']):
+                    data[key]['last_attempt'] = a.finished_at
+
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Студент', 'Email', 'Курс', 'Урок', 'Тест', 'Лучший результат (%)', 'Пройден', 'Количество попыток', 'Дата последней попытки'])
+        for d in data.values():
+            writer.writerow([
+                d['student_name'],
+                d['email'],
+                d['course'],
+                d['lesson'],
+                d['quiz'],
+                d['best_score'],
+                'Да' if d['best_score'] >= d['passing_score'] else 'Нет',
+                d['count'],
+                d['last_attempt'].strftime('%d.%m.%Y %H:%M') if d['last_attempt'] else '',
+            ])
+
+        # utf-8-sig adds BOM so Excel opens Cyrillic correctly
+        response = HttpResponse(
+            '﻿' + output.getvalue(),
+            content_type='text/csv; charset=utf-8'
+        )
+        response['Content-Disposition'] = 'attachment; filename="quiz_performance.csv"'
+        return response

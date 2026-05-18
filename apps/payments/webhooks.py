@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
 from apps.courses.models import Enrollment
 from .models import Payment
 

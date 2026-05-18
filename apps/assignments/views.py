@@ -54,13 +54,46 @@ class AssignmentDetailView(generics.RetrieveUpdateDestroyAPIView):
 class SubmitAssignmentView(APIView):
     """
     POST /api/assignments/<assignment_id>/submit/ — сдать задание (student)
+    Если есть returned-работа, обновляет её вместо создания новой.
     """
     permission_classes = (IsStudent,)
 
     def post(self, request, assignment_id):
         get_object_or_404(Assignment, pk=assignment_id)
+        data = {key: val for key, val in request.data.items()}
+        data['assignment'] = assignment_id
+        if 'file' in request.FILES:
+            data['file'] = request.FILES['file']
+
+        existing = Submission.objects.filter(
+            assignment_id=assignment_id,
+            student=request.user
+        ).first()
+
+        if existing:
+            if existing.status != Submission.Status.RETURNED:
+                return Response(
+                    {'detail': 'Вы уже сдали это задание.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Resubmission: update the returned submission
+            existing.content = data.get('content', '')
+            if 'file' in data:
+                if existing.file:
+                    existing.file.delete(save=False)
+                existing.file = data['file']
+            elif existing.file:
+                existing.file.delete(save=False)
+                existing.file = None
+            existing.status = Submission.Status.SUBMITTED
+            existing.save()
+            return Response(
+                SubmissionSerializer(existing, context={'request': request}).data,
+                status=status.HTTP_200_OK
+            )
+
         serializer = SubmissionCreateSerializer(
-            data={**request.data, 'assignment': assignment_id},
+            data=data,
             context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
@@ -97,6 +130,35 @@ class MySubmissionsView(generics.ListAPIView):
         ).select_related('assignment', 'grade')
 
 
+class TeacherSubmissionsView(generics.ListAPIView):
+    """
+    GET /api/submissions/teacher/ — все работы по курсам учителя (teacher, admin)
+    """
+    serializer_class = SubmissionSerializer
+    permission_classes = (IsTeacherOrAdmin,)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'admin':
+            return Submission.objects.all().select_related(
+                'student', 'assignment', 'grade'
+            ).order_by('-submitted_at')
+        return Submission.objects.filter(
+            assignment__lesson__course__teacher=user
+        ).select_related('student', 'assignment', 'grade').order_by('-submitted_at')
+
+
+class SubmissionDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/submissions/<id>/ — детали работы (teacher, admin)
+    """
+    serializer_class = SubmissionSerializer
+    permission_classes = (IsTeacherOrAdmin,)
+
+    def get_queryset(self):
+        return Submission.objects.all().select_related('student', 'assignment', 'grade')
+
+
 class GradeSubmissionView(APIView):
     """
     POST /api/submissions/<submission_id>/grade/ — оценить задание (teacher, admin)
@@ -126,7 +188,6 @@ class GradeSubmissionView(APIView):
         submission.save()
 
         return Response({
-            'score': grade.score,
             'feedback': grade.feedback,
             'graded_at': grade.graded_at,
         }, status=status.HTTP_201_CREATED)

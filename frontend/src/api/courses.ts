@@ -1,9 +1,11 @@
 import api from './client'
-import type { Course, CourseGroup, Enrollment, CourseProgress } from '../types'
+import type { Course, CourseCatalog, CourseGroup, Enrollment, CourseProgress, Section } from '../types'
 
 export const coursesApi = {
   list: () => api.get<Course[]>('/courses/'),
   my: () => api.get<Course[]>('/courses/my/'),
+  catalog: () => api.get<CourseCatalog[]>('/courses/catalog/'),
+  selfEnroll: (groupId: number) => api.post<Enrollment>(`/courses/groups/${groupId}/join/`),
   detail: (id: number) => api.get<Course>(`/courses/${id}/`),
   create: (data: FormData) => api.post<Course>('/courses/create/', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -33,4 +35,14 @@ export const coursesApi = {
     }),
   getStudents: (groupId: number) =>
     api.get<Enrollment[]>(`/courses/groups/${groupId}/students/`),
+
+  // Sections
+  getSections: (courseId: number) =>
+    api.get<Section[]>(`/courses/${courseId}/sections/`),
+  createSection: (courseId: number, data: { title: string; order?: number }) =>
+    api.post<Section>(`/courses/${courseId}/sections/`, data),
+  updateSection: (sectionId: number, data: Partial<Section>) =>
+    api.patch<Section>(`/sections/${sectionId}/`, data),
+  deleteSection: (sectionId: number) =>
+    api.delete(`/sections/${sectionId}/`),
 }

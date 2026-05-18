@@ -4,15 +4,15 @@ from .models import Assignment, Submission, Grade
 
 class AssignmentSerializer(serializers.ModelSerializer):
     lesson_title = serializers.CharField(source='lesson.title', read_only=True)
+    lesson_colab_url = serializers.CharField(source='lesson.colab_url', read_only=True, allow_null=True)
     submissions_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
         fields = (
-            'id', 'lesson', 'lesson_title',
+            'id', 'lesson', 'lesson_title', 'lesson_colab_url',
             'title', 'description',
-            'due_date', 'max_score',
-            'submissions_count',
+            'due_date', 'submissions_count',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
@@ -29,14 +29,13 @@ class GradeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Grade
-        fields = ('id', 'score', 'feedback', 'teacher_name', 'graded_at')
+        fields = ('id', 'feedback', 'teacher_name', 'graded_at')
         read_only_fields = ('id', 'graded_at', 'teacher_name')
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
     assignment_title = serializers.CharField(source='assignment.title', read_only=True)
-    max_score = serializers.IntegerField(source='assignment.max_score', read_only=True)
     grade = GradeSerializer(read_only=True)
 
     class Meta:
@@ -45,7 +44,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             'id', 'assignment', 'assignment_title',
             'student', 'student_name',
             'content', 'file', 'status',
-            'max_score', 'grade',
+            'grade',
             'submitted_at', 'updated_at',
         )
         read_only_fields = (
@@ -54,10 +53,40 @@ class SubmissionSerializer(serializers.ModelSerializer):
         )
 
 
+ALLOWED_EXTENSIONS = {
+    '.pdf', '.doc', '.docx', '.odt', '.txt', '.rtf',
+    '.xls', '.xlsx', '.ods', '.csv',
+    '.ppt', '.pptx', '.odp',
+    '.jpg', '.jpeg', '.png', '.gif', '.webp',
+    '.zip', '.rar', '.7z', '.tar', '.gz',
+    '.py', '.js', '.ts', '.html', '.css', '.java',
+    '.cpp', '.c', '.cs', '.rb', '.php', '.go',
+    '.ipynb', '.md',
+}
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
 class SubmissionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
         fields = ('assignment', 'content', 'file')
+
+    def validate_file(self, value):
+        if value is None:
+            return value
+        if value.size > MAX_FILE_SIZE:
+            raise serializers.ValidationError(
+                'Файл слишком большой. Максимальный размер: 10 МБ.'
+            )
+        import os
+        ext = os.path.splitext(value.name)[1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise serializers.ValidationError(
+                f'Неподдерживаемый формат файла «{ext}». '
+                'Разрешены: PDF, DOC, DOCX, TXT, XLS, XLSX, PPT, JPG, PNG, ZIP, PY, IPYNB и другие.'
+            )
+        return value
 
     def validate_assignment(self, value):
         request = self.context.get('request')
@@ -73,13 +102,6 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        request = self.context.get('request')
-        if Submission.objects.filter(
-            assignment=attrs['assignment'],
-            student=request.user
-        ).exists():
-            raise serializers.ValidationError('Вы уже сдали это задание.')
-        # Убираем проверку — файл ИЛИ текст необязательны одновременно
         return attrs
 
     def create(self, validated_data):
@@ -93,12 +115,7 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
 class GradeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Grade
-        fields = ('score', 'feedback')
+        fields = ('feedback',)
 
-    def validate_score(self, value):
-        submission = self.context.get('submission')
-        if submission and value > submission.assignment.max_score:
-            raise serializers.ValidationError(
-                f'Оценка не может превышать {submission.assignment.max_score}.'
-            )
-        return value
+    def create(self, validated_data):
+        return Grade.objects.create(score=0, **validated_data)

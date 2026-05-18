@@ -1,4 +1,6 @@
+import os
 from django.shortcuts import get_object_or_404
+from django.http import FileResponse, Http404
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -55,13 +57,6 @@ class IssueCertificateView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Проверяем что сертификат не выдан
-        if Certificate.objects.filter(student=request.user, course=course).exists():
-            cert = Certificate.objects.get(student=request.user, course=course)
-            return Response(
-                CertificateSerializer(cert, context={'request': request}).data
-            )
-
         # Проверяем завершение курса
         if not check_course_completion(request.user, course):
             return Response(
@@ -69,15 +64,15 @@ class IssueCertificateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Создаём и генерируем сертификат
-        certificate = Certificate.objects.create(
-            student=request.user,
-            course=course
-        )
-        generate_certificate_pdf(certificate)
+        # Получаем или создаём сертификат, всегда перегенерируем PDF
+        cert = Certificate.objects.filter(student=request.user, course=course).first()
+        if not cert:
+            cert = Certificate.objects.create(student=request.user, course=course)
+
+        generate_certificate_pdf(cert)
 
         return Response(
-            CertificateSerializer(certificate, context={'request': request}).data,
+            CertificateSerializer(cert, context={'request': request}).data,
             status=status.HTTP_201_CREATED
         )
 
@@ -109,6 +104,26 @@ class VerifyCertificateView(APIView):
             'course_title': certificate.course.title,
             'issued_at': certificate.issued_at,
         })
+
+
+class DownloadCertificateView(APIView):
+    """
+    GET /api/certificates/<uid>/download/ — скачать PDF сертификата
+    Отправляет файл с Content-Disposition: attachment
+    """
+    permission_classes = (IsStudent,)
+
+    def get(self, request, uid):
+        cert = get_object_or_404(Certificate, uid=uid, student=request.user)
+        if not cert.pdf or not cert.pdf.name:
+            raise Http404('PDF ещё не сгенерирован.')
+        try:
+            filename = f'certificate_{str(cert.uid)[:8].upper()}.pdf'
+            response = FileResponse(cert.pdf.open('rb'), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except FileNotFoundError:
+            raise Http404('Файл не найден.')
 
 
 class AdminCertificateListView(generics.ListAPIView):
