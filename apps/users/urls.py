@@ -14,6 +14,7 @@ from .views import (
     AdminUserDetailView,
     AdminUserBlockView,
     AdminCreateUserView,
+    AdminDeleteUserView,
 )
 
 urlpatterns = [
@@ -35,5 +36,6 @@ urlpatterns = [
     path('create/', AdminCreateUserView.as_view(), name='user-create-admin'),
     path('', AdminUserListView.as_view(), name='user-list'),
     path('<int:pk>/', AdminUserDetailView.as_view(), name='user-detail'),
+    path('<int:pk>/delete/', AdminDeleteUserView.as_view(), name='user-delete'),
     path('<int:pk>/<str:action>/', AdminUserBlockView.as_view(), name='user-block'),
 ]

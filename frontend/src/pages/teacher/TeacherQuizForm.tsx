@@ -303,7 +303,6 @@ export default function TeacherQuizForm() {
                     className={inputCls}>
                     <option value="single">Один вариант</option>
                     <option value="multiple">Несколько вариантов</option>
-                    <option value="text">Текстовый ответ</option>
                   </select>
                 </div>
                 <div>
@@ -359,11 +358,6 @@ export default function TeacherQuizForm() {
                 </div>
               )}
 
-              {q.type === 'text' && (
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Текстовые ответы проверяются вручную преподавателем
-                </p>
-              )}
             </div>
           ))}
 

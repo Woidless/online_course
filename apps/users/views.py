@@ -321,6 +321,38 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
         return super().update(request, *args, **kwargs)
 
 
+class AdminDeleteUserView(APIView):
+    """
+    DELETE /api/users/<pk>/delete/ — удалить пользователя (только суперпользователь)
+    """
+    permission_classes = (IsAuthenticated,)
+
+    def delete(self, request, pk):
+        if request.user.role not in ('admin',) and not request.user.is_superuser:
+            return Response(
+                {'detail': 'Нет прав для удаления пользователей.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        user = get_object_or_404(User, pk=pk)
+        if user == request.user:
+            return Response(
+                {'detail': 'Нельзя удалить собственную учётную запись.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if user.is_superuser:
+            return Response(
+                {'detail': 'Нельзя удалить суперпользователя.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if user.role == 'admin' and not request.user.is_superuser:
+            return Response(
+                {'detail': 'Только суперпользователи могут удалять администраторов.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class AdminUserBlockView(APIView):
     permission_classes = (IsAdmin,)
 

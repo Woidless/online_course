@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../api/client'
-import type { Lesson, Assignment, Quiz, Schedule } from '../../types'
+import type { Lesson, Assignment, Quiz, Schedule, LessonMaterial } from '../../types'
 import { marked } from 'marked'
 
 export default function StudentLessonPage() {
@@ -14,6 +14,7 @@ export default function StudentLessonPage() {
   const [loading, setLoading] = useState(true)
   const [completing, setCompleting] = useState(false)
   const [completed, setCompleted] = useState(false)
+  const [expandedPresentations, setExpandedPresentations] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (!id) return
@@ -42,6 +43,25 @@ export default function StudentLessonPage() {
     } finally {
       setCompleting(false)
     }
+  }
+
+  const togglePresentation = (id: number) => {
+    setExpandedPresentations(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const getPresentationSrc = (material: LessonMaterial): string => {
+    const src = material.url || material.file || ''
+    if (src.includes('docs.google.com/presentation')) {
+      const match = src.match(/\/presentation\/d\/([^/?#]+)/)
+      if (match) return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false`
+    }
+    const absolute = src.startsWith('http') ? src : `${window.location.origin}${src}`
+    return `https://docs.google.com/gview?url=${encodeURIComponent(absolute)}&embedded=true`
   }
 
   const getYouTubeId = (url: string) => {
@@ -134,16 +154,58 @@ export default function StudentLessonPage() {
       {lesson.materials.length > 0 && (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3">Дополнительные материалы</h2>
-          <div className="space-y-2">
-            {lesson.materials.map(material => (
-              <a key={material.id} href={material.url || material.file || '#'} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-                <span className="text-lg">
-                  {material.type === 'file' ? '📄' : material.type === 'presentation' ? '📊' : '🔗'}
-                </span>
-                <span className="text-sm text-gray-700 dark:text-gray-300">{material.title}</span>
-              </a>
-            ))}
+          <div className="space-y-3">
+            {lesson.materials.map(material => {
+              if (material.type === 'presentation') {
+                const isExpanded = expandedPresentations.has(material.id)
+                return (
+                  <div key={material.id} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <button
+                      onClick={() => togglePresentation(material.id)}
+                      className="w-full flex items-center justify-between gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">📊</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{material.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={material.url || material.file || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                          Открыть отдельно
+                        </a>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
+                        <iframe
+                          src={getPresentationSrc(material)}
+                          className="w-full"
+                          style={{ height: '500px' }}
+                          allowFullScreen
+                          title={material.title}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+              return (
+                <a key={material.id} href={material.url || material.file || '#'} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                  <span className="text-lg">
+                    {material.type === 'file' ? '📄' : '🔗'}
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{material.title}</span>
+                </a>
+              )
+            })}
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@ export const adminApi = {
     api.patch<User>(`/users/${id}/`, data),
   blockUser: (id: number) => api.post(`/users/${id}/block/`),
   unblockUser: (id: number) => api.post(`/users/${id}/unblock/`),
+  deleteUser: (id: number) => api.delete(`/users/${id}/delete/`),
   createUser: (data: { email: string; full_name: string; password: string; role: string }) =>
     api.post<User>('/users/create/', data),
 
