@@ -38,8 +38,8 @@ export default function DashboardLayout({ navItems, role }: Props) {
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-gray-200 dark:border-gray-700">
           {sidebarOpen
-            ? <span className="text-lg font-semibold text-gray-900 dark:text-white">LMS Platform</span>
-            : <span className="text-lg font-semibold text-blue-600">L</span>
+            ? <span className="text-lg font-semibold text-gray-900 dark:text-white">Taalim Bulak</span>
+            : <span className="text-lg font-semibold text-blue-600">T</span>
           }
         </div>
 

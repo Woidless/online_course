@@ -34,6 +34,9 @@ import TeacherSchedule from './pages/teacher/TeacherSchedule'
 import TeacherScheduleForm from './pages/teacher/TeacherScheduleForm'
 import TeacherSubmissions from './pages/teacher/TeacherSubmissions'
 import TeacherSubmissionDetail from './pages/teacher/TeacherSubmissionDetail'
+import TeacherCourseForm from './pages/teacher/TeacherCourseForm'
+import TeacherLessonForm from './pages/teacher/TeacherLessonForm'
+import TeacherProfile from './pages/teacher/TeacherProfile'
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -101,6 +104,7 @@ const teacherNav = [
   { to: '/teacher/courses', label: 'Мои курсы', icon: <BookIcon /> },
   { to: '/teacher/schedule', label: 'Расписание', icon: <CalendarIcon /> },
   { to: '/teacher/submissions', label: 'Работы', icon: <ClipboardIcon /> },
+  { to: '/teacher/profile', label: 'Профиль', icon: <UserIcon /> },
 ]
 
 const adminNav = [
@@ -165,13 +169,19 @@ export default function App() {
           <Route path="/teacher" element={<DashboardLayout navItems={teacherNav} role="teacher" />}>
             <Route index element={<TeacherDashboard />} />
             <Route path="courses" element={<TeacherCourses />} />
+            <Route path="courses/create" element={<TeacherCourseForm />} />
             <Route path="courses/:id" element={<TeacherCoursePage />} />
+            <Route path="courses/:id/edit" element={<TeacherCourseForm />} />
             <Route path="schedule" element={<TeacherSchedule />} />
             <Route path="schedule/create" element={<TeacherScheduleForm />} />
             <Route path="schedule/:id/edit" element={<TeacherScheduleForm />} />
             <Route path="submissions" element={<TeacherSubmissions />} />
             <Route path="submissions/:id" element={<TeacherSubmissionDetail />} />
+            <Route path="profile" element={<TeacherProfile />} />
+            <Route path="courses/:courseId/lessons/create" element={<TeacherLessonForm />} />
+            <Route path="lessons/:lessonId/edit" element={<TeacherLessonForm />} />
             <Route path="lessons/:lessonId/quizzes/create" element={<TeacherQuizForm />} />
+            <Route path="lessons/:lessonId/quizzes/:quizId/edit" element={<TeacherQuizForm />} />
           </Route>
         </Route>
 
@@ -186,6 +196,10 @@ export default function App() {
             <Route path="courses/:id/edit" element={<AdminCourseForm />} />
             <Route path="payments" element={<AdminPayments />} />
             <Route path="reports" element={<AdminReports />} />
+            <Route path="courses/:courseId/lessons/create" element={<TeacherLessonForm />} />
+            <Route path="lessons/:lessonId/edit" element={<TeacherLessonForm />} />
+            <Route path="lessons/:lessonId/quizzes/create" element={<TeacherQuizForm />} />
+            <Route path="lessons/:lessonId/quizzes/:quizId/edit" element={<TeacherQuizForm />} />
           </Route>
         </Route>
 

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import api from '../../api/client'
 import type { Lesson } from '../../types'
 
 interface AnswerDraft {
+  serverId?: number
   text: string
   is_correct: boolean
 }
 
 interface QuestionDraft {
   localId: number
+  serverId?: number
   text: string
   type: 'single' | 'multiple' | 'text'
   points: number
@@ -32,8 +34,12 @@ function makeQuestion(): QuestionDraft {
 }
 
 export default function TeacherQuizForm() {
-  const { lessonId } = useParams<{ lessonId: string }>()
+  const { lessonId, quizId } = useParams<{ lessonId: string; quizId: string }>()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const prefix = pathname.startsWith('/admin') ? '/admin' : '/teacher'
+  const isEdit = Boolean(quizId)
+
   const [lesson, setLesson] = useState<Lesson | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -41,6 +47,8 @@ export default function TeacherQuizForm() {
   const [passingScore, setPassingScore] = useState('60')
   const [isPublished, setIsPublished] = useState(false)
   const [questions, setQuestions] = useState<QuestionDraft[]>([makeQuestion()])
+  const [deletedQuestionIds, setDeletedQuestionIds] = useState<number[]>([])
+  const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -49,10 +57,41 @@ export default function TeacherQuizForm() {
     api.get<Lesson>(`/lessons/${lessonId}/`).then(res => setLesson(res.data))
   }, [lessonId])
 
+  useEffect(() => {
+    if (!quizId) return
+    api.get<any>(`/quizzes/${quizId}/`).then(res => {
+      const q = res.data
+      setTitle(q.title)
+      setDescription(q.description || '')
+      setTimeLimit(q.time_limit ? String(q.time_limit) : '')
+      setPassingScore(String(q.passing_score))
+      setIsPublished(q.is_published)
+      setQuestions(
+        (q.questions as any[]).map(sq => ({
+          localId: nextLocalId++,
+          serverId: sq.id,
+          text: sq.text,
+          type: sq.type,
+          points: sq.points ?? 1,
+          answers: (sq.answers as any[]).map(a => ({
+            serverId: a.id,
+            text: a.text,
+            is_correct: a.is_correct ?? false,
+          })),
+        }))
+      )
+    }).finally(() => setLoading(false))
+  }, [quizId])
+
   const addQuestion = () => setQuestions(prev => [...prev, makeQuestion()])
 
-  const removeQuestion = (localId: number) =>
-    setQuestions(prev => prev.filter(q => q.localId !== localId))
+  const removeQuestion = (localId: number) => {
+    setQuestions(prev => {
+      const q = prev.find(q => q.localId === localId)
+      if (q?.serverId) setDeletedQuestionIds(ids => [...ids, q.serverId!])
+      return prev.filter(q => q.localId !== localId)
+    })
+  }
 
   const updateQuestion = (localId: number, patch: Partial<QuestionDraft>) =>
     setQuestions(prev => prev.map(q => q.localId === localId ? { ...q, ...patch } : q))
@@ -78,43 +117,95 @@ export default function TeacherQuizForm() {
         : q
     ))
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validate = (): string => {
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      if (!q.text.trim()) return `Вопрос ${i + 1}: введите текст вопроса`
+      if (q.type !== 'text') {
+        const filled = q.answers.filter(a => a.text.trim())
+        if (filled.length < 2) return `Вопрос ${i + 1}: добавьте минимум 2 варианта ответа`
+        const hasCorrect = filled.some(a => a.is_correct)
+        if (!hasCorrect) return `Вопрос ${i + 1}: выберите правильный ответ`
+      }
+    }
+    return ''
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!lessonId) return
     setError('')
+
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
     setSaving(true)
     try {
-      // 1. Create quiz
-      const quizRes = await api.post(`/lessons/${lessonId}/quizzes/`, {
-        title,
-        description,
-        time_limit: timeLimit ? Number(timeLimit) : null,
-        passing_score: Number(passingScore),
-        is_published: isPublished,
-      })
-      const quizId = quizRes.data.id
+      let resolvedQuizId: number
 
-      // 2. Create questions and answers sequentially
+      if (isEdit && quizId) {
+        await api.patch(`/quizzes/${quizId}/`, {
+          title,
+          description,
+          time_limit: timeLimit ? Number(timeLimit) : null,
+          passing_score: Number(passingScore),
+          is_published: isPublished,
+        })
+        resolvedQuizId = Number(quizId)
+
+        // Delete removed questions
+        for (const qid of deletedQuestionIds) {
+          await api.delete(`/questions/${qid}/`)
+        }
+      } else {
+        if (!lessonId) return
+        const quizRes = await api.post(`/lessons/${lessonId}/quizzes/`, {
+          title,
+          description,
+          time_limit: timeLimit ? Number(timeLimit) : null,
+          passing_score: Number(passingScore),
+          is_published: isPublished,
+        })
+        resolvedQuizId = quizRes.data.id
+      }
+
+      // Save questions and answers
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i]
-        const qRes = await api.post(`/quizzes/${quizId}/questions/`, {
-          text: q.text,
-          type: q.type,
-          order: i,
-          points: q.points,
-        })
+        let questionServerId: number
+
+        if (q.serverId) {
+          await api.patch(`/questions/${q.serverId}/`, {
+            text: q.text,
+            type: q.type,
+            order: i,
+            points: q.points,
+          })
+          questionServerId = q.serverId
+        } else {
+          const qRes = await api.post(`/quizzes/${resolvedQuizId}/questions/`, {
+            text: q.text,
+            type: q.type,
+            order: i,
+            points: q.points,
+          })
+          questionServerId = qRes.data.id
+        }
+
         if (q.type !== 'text') {
-          await api.post(`/questions/${qRes.data.id}/answers/`, {
+          await api.post(`/questions/${questionServerId}/answers/`, {
             answers: q.answers.filter(a => a.text.trim()),
           })
         }
       }
 
-      navigate(`/teacher/courses/${lesson?.course}`)
+      navigate(`${prefix}/courses/${lesson?.course}`)
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: unknown } }
       const d = axiosErr.response?.data
-      setError(typeof d === 'object' ? JSON.stringify(d) : 'Не удалось создать тест')
+      setError(typeof d === 'object' ? JSON.stringify(d) : 'Не удалось сохранить тест')
     } finally {
       setSaving(false)
     }
@@ -122,6 +213,12 @@ export default function TeacherQuizForm() {
 
   const inputCls = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
   const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -134,7 +231,9 @@ export default function TeacherQuizForm() {
       </button>
 
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Создать тест</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          {isEdit ? 'Редактировать тест' : 'Создать тест'}
+        </h1>
         {lesson && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Урок: {lesson.title}</p>
         )}
@@ -170,7 +269,7 @@ export default function TeacherQuizForm() {
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isPublished} onChange={e => setIsPublished(e.target.checked)}
               className="w-4 h-4 text-blue-600 rounded" />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Опубликовать сразу</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Опубликовать</span>
           </label>
         </div>
 
@@ -226,16 +325,15 @@ export default function TeacherQuizForm() {
                       <input
                         type={q.type === 'single' ? 'radio' : 'checkbox'}
                         checked={a.is_correct}
-                        onChange={e => {
+                        onChange={() => {
                           if (q.type === 'single') {
-                            // For single: uncheck all others
                             setQuestions(prev => prev.map(pq =>
                               pq.localId === q.localId
                                 ? { ...pq, answers: pq.answers.map((pa, pi) => ({ ...pa, is_correct: pi === ai })) }
                                 : pq
                             ))
                           } else {
-                            updateAnswer(q.localId, ai, { is_correct: e.target.checked })
+                            updateAnswer(q.localId, ai, { is_correct: !a.is_correct })
                           }
                         }}
                         name={`q${q.localId}-correct`}
@@ -283,7 +381,7 @@ export default function TeacherQuizForm() {
 
         <button type="submit" disabled={saving || !title.trim()}
           className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-          {saving ? 'Создание...' : 'Создать тест'}
+          {saving ? 'Сохранение...' : isEdit ? 'Сохранить изменения' : 'Создать тест'}
         </button>
       </form>
     </div>

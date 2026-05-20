@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
 
 from apps.users.permissions import IsAdmin, IsTeacher, IsTeacherOrAdmin, IsStudent
 from .models import Course, CourseGroup, Enrollment
@@ -76,19 +77,13 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class CoursePublishView(APIView):
     """
-    POST /api/courses/<id>/publish/   - опубликовать
-    POST /api/courses/<id>/unpublish/ - снять с публикации
+    POST /api/courses/<id>/publish/   - опубликовать (только admin)
+    POST /api/courses/<id>/unpublish/ - снять с публикации (только admin)
     """
-    permission_classes = (IsTeacherOrAdmin,)
+    permission_classes = (IsAdmin,)
 
     def post(self, request, pk, action):
         course = get_object_or_404(Course, pk=pk)
-
-        if request.user.role == 'teacher' and course.teacher != request.user:
-            return Response(
-                {'detail': 'Нет доступа к этому курсу.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
 
         if action == 'publish':
             course.is_published = True
@@ -190,6 +185,20 @@ class GroupEnrollmentListView(generics.ListAPIView):
         ).select_related('student', 'group')
 
 
+class EnrollmentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    PATCH  /api/courses/enrollments/<id>/ - изменить группу/статус (teacher, admin)
+    DELETE /api/courses/enrollments/<id>/ - удалить зачисление (admin)
+    """
+    serializer_class = EnrollmentSerializer
+    queryset = Enrollment.objects.all().select_related('student', 'group', 'group__course')
+
+    def get_permissions(self):
+        if self.request.method == 'DELETE':
+            return [IsAdmin()]
+        return [IsTeacherOrAdmin()]
+
+
 class CourseCatalogView(generics.ListAPIView):
     """
     GET /api/courses/catalog/ — все опубликованные курсы для студента (каталог)
@@ -198,7 +207,10 @@ class CourseCatalogView(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return Course.objects.filter(is_published=True).prefetch_related('groups')
+        open_groups = CourseGroup.objects.filter(is_enrollment_open=True)
+        return Course.objects.filter(is_published=True).prefetch_related(
+            Prefetch('groups', queryset=open_groups)
+        )
 
 
 class SelfEnrollView(APIView):
@@ -220,6 +232,12 @@ class SelfEnrollView(APIView):
         if not course.is_published:
             return Response(
                 {'detail': 'Курс недоступен.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not group.is_enrollment_open:
+            return Response(
+                {'detail': 'Набор в эту группу закрыт.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

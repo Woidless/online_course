@@ -2,8 +2,8 @@ import uuid
 from datetime import timedelta
 
 from django.contrib.auth import authenticate
-from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
@@ -20,13 +20,15 @@ from .serializers import (
     UserProfileSerializer,
     UserAvatarSerializer,
     AdminUserSerializer,
+    AdminCreateUserSerializer,
     ChangePasswordSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
 )
-from .permissions import IsAdmin
+from .permissions import IsAdmin, IsTeacherOrAdmin
 from .throttles import LoginRateThrottle, RegisterRateThrottle, PasswordResetRateThrottle
 from .pagination import UserPagination
+from .tasks import send_verification_email, send_password_reset_email
 
 
 def get_tokens_for_user(user):
@@ -52,15 +54,9 @@ class RegisterView(APIView):
             expires_at=timezone.now() + timedelta(hours=24)
         )
 
-        # Отправляем письмо
+        # Отправляем письмо асинхронно
         verify_url = f"{settings.FRONTEND_URL}/verify-email/{token.token}"
-        send_mail(
-            subject='Подтвердите ваш email',
-            message=f'Перейдите по ссылке для подтверждения: {verify_url}',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        send_verification_email.delay(user.email, verify_url)
 
         return Response(
             {'detail': 'Регистрация успешна. Проверьте email для подтверждения.'},
@@ -240,13 +236,7 @@ class PasswordResetRequestView(APIView):
         )
 
         reset_url = f"{settings.FRONTEND_URL}/reset-password/{token.token}"
-        send_mail(
-            subject='Сброс пароля',
-            message=f'Для сброса пароля перейдите по ссылке: {reset_url}',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        send_password_reset_email.delay(user.email, reset_url)
 
         return Response({'detail': 'Если email зарегистрирован, письмо отправлено.'})
 
@@ -282,7 +272,7 @@ class PasswordResetConfirmView(APIView):
 
 class AdminUserListView(generics.ListAPIView):
     serializer_class = AdminUserSerializer
-    permission_classes = (IsAdmin,)
+    permission_classes = (IsTeacherOrAdmin,)
     pagination_class = UserPagination
 
     def get_queryset(self):
@@ -290,13 +280,45 @@ class AdminUserListView(generics.ListAPIView):
         role = self.request.query_params.get('role')
         if role:
             queryset = queryset.filter(role=role)
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(email__icontains=search) | Q(full_name__icontains=search)
+            )
         return queryset
+
+
+class AdminCreateUserView(APIView):
+    """
+    POST /api/users/create/ — создать пользователя с любой ролью (admin only)
+    """
+    permission_classes = (IsAdmin,)
+
+    def post(self, request):
+        serializer = AdminCreateUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(AdminUserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
 class AdminUserDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = AdminUserSerializer
     permission_classes = (IsAdmin,)
     queryset = User.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        target = self.get_object()
+        if target == request.user:
+            return Response(
+                {'detail': 'Нельзя редактировать собственную учётную запись через панель администратора.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if target.is_superuser and not request.user.is_superuser:
+            return Response(
+                {'detail': 'Нельзя изменять учётную запись суперпользователя.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
 
 
 class AdminUserBlockView(APIView):
@@ -309,6 +331,12 @@ class AdminUserBlockView(APIView):
             return Response(
                 {'detail': 'Нельзя заблокировать самого себя.'},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if user.is_superuser and not request.user.is_superuser:
+            return Response(
+                {'detail': 'Нельзя блокировать суперпользователя.'},
+                status=status.HTTP_403_FORBIDDEN
             )
 
         if action == 'block':

@@ -45,7 +45,7 @@ class QuizSerializer(serializers.ModelSerializer):
             'questions_count', 'questions',
             'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'lesson', 'created_at', 'updated_at')
 
     def get_questions_count(self, obj):
         return obj.questions.count()

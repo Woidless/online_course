@@ -231,62 +231,182 @@ class QuizAttemptsView(generics.ListAPIView):
         ).select_related('student', 'quiz')
 
 
-class ExportQuizPerformanceView(APIView):
+class CourseQuizResultsView(APIView):
     """
-    GET /api/quizzes/export/performance/
-    CSV with best quiz attempt per student per quiz.
+    GET /api/courses/<course_id>/quiz-results/ — результаты тестов по курсу (teacher, admin)
     """
     permission_classes = (IsTeacherOrAdmin,)
 
-    def get(self, request):
-        attempts = QuizAttempt.objects.filter(
-            status=QuizAttempt.Status.COMPLETED
-        ).select_related('student', 'quiz', 'quiz__lesson', 'quiz__lesson__course')
+    def get(self, request, course_id):
+        from apps.courses.models import Course
+        get_object_or_404(Course, pk=course_id)
 
-        # Group by (student, quiz), keep best score
+        attempts = QuizAttempt.objects.filter(
+            status=QuizAttempt.Status.COMPLETED,
+            quiz__lesson__course_id=course_id,
+        ).select_related('student', 'quiz', 'quiz__lesson')
+
         data = {}
         for a in attempts:
             key = (a.student_id, a.quiz_id)
             score = a.score or 0
             if key not in data:
                 data[key] = {
+                    'student_id': a.student_id,
                     'student_name': a.student.full_name,
                     'email': a.student.email,
-                    'course': a.quiz.lesson.course.title,
-                    'lesson': a.quiz.lesson.title,
-                    'quiz': a.quiz.title,
+                    'lesson_title': a.quiz.lesson.title,
+                    'quiz_id': a.quiz_id,
+                    'quiz_title': a.quiz.title,
                     'best_score': score,
                     'passing_score': a.quiz.passing_score,
-                    'count': 1,
+                    'passed': score >= a.quiz.passing_score,
+                    'attempt_count': 1,
                     'last_attempt': a.finished_at,
                 }
             else:
-                data[key]['count'] += 1
+                data[key]['attempt_count'] += 1
                 if score > data[key]['best_score']:
                     data[key]['best_score'] = score
-                if a.finished_at and (data[key]['last_attempt'] is None or a.finished_at > data[key]['last_attempt']):
+                    data[key]['passed'] = score >= data[key]['passing_score']
+                if a.finished_at and (
+                    data[key]['last_attempt'] is None
+                    or a.finished_at > data[key]['last_attempt']
+                ):
                     data[key]['last_attempt'] = a.finished_at
 
+        results = sorted(data.values(), key=lambda x: (x['student_name'], x['quiz_title']))
+        for r in results:
+            if r['last_attempt']:
+                r['last_attempt'] = r['last_attempt'].strftime('%d.%m.%Y %H:%M')
+
+        return Response(results)
+
+
+def _build_quiz_performance_data():
+    """Returns list of dicts with best quiz score per (student, quiz)."""
+    attempts = QuizAttempt.objects.filter(
+        status=QuizAttempt.Status.COMPLETED
+    ).select_related('student', 'quiz', 'quiz__lesson', 'quiz__lesson__course')
+
+    data = {}
+    for a in attempts:
+        key = (a.student_id, a.quiz_id)
+        score = a.score or 0
+        if key not in data:
+            data[key] = {
+                'student_id': a.student_id,
+                'student_name': a.student.full_name,
+                'email': a.student.email,
+                'course': a.quiz.lesson.course.title,
+                'lesson': a.quiz.lesson.title,
+                'quiz': a.quiz.title,
+                'best_score': score,
+                'passing_score': a.quiz.passing_score,
+                'count': 1,
+                'last_attempt': a.finished_at,
+            }
+        else:
+            data[key]['count'] += 1
+            if score > data[key]['best_score']:
+                data[key]['best_score'] = score
+            if a.finished_at and (data[key]['last_attempt'] is None or a.finished_at > data[key]['last_attempt']):
+                data[key]['last_attempt'] = a.finished_at
+
+    return list(data.values())
+
+
+HEADERS = ['ID студента', 'Студент', 'Email', 'Курс', 'Урок', 'Тест', 'Лучший результат (%)', 'Пройден', 'Кол-во попыток', 'Дата последней попытки']
+
+
+def _row(d):
+    return [
+        d['student_id'],
+        d['student_name'],
+        d['email'],
+        d['course'],
+        d['lesson'],
+        d['quiz'],
+        d['best_score'],
+        'Да' if d['best_score'] >= d['passing_score'] else 'Нет',
+        d['count'],
+        d['last_attempt'].strftime('%d.%m.%Y %H:%M') if d['last_attempt'] else '',
+    ]
+
+
+class ExportQuizPerformanceView(APIView):
+    """
+    GET /api/quizzes/export/performance/ — CSV
+    """
+    permission_classes = (IsTeacherOrAdmin,)
+
+    def get(self, request):
+        rows = _build_quiz_performance_data()
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Студент', 'Email', 'Курс', 'Урок', 'Тест', 'Лучший результат (%)', 'Пройден', 'Количество попыток', 'Дата последней попытки'])
-        for d in data.values():
-            writer.writerow([
-                d['student_name'],
-                d['email'],
-                d['course'],
-                d['lesson'],
-                d['quiz'],
-                d['best_score'],
-                'Да' if d['best_score'] >= d['passing_score'] else 'Нет',
-                d['count'],
-                d['last_attempt'].strftime('%d.%m.%Y %H:%M') if d['last_attempt'] else '',
-            ])
-
-        # utf-8-sig adds BOM so Excel opens Cyrillic correctly
-        response = HttpResponse(
-            '﻿' + output.getvalue(),
-            content_type='text/csv; charset=utf-8'
-        )
+        writer.writerow(HEADERS)
+        for d in rows:
+            writer.writerow(_row(d))
+        # utf-8-sig BOM so Excel opens Cyrillic correctly
+        response = HttpResponse('﻿' + output.getvalue(), content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="quiz_performance.csv"'
+        return response
+
+
+class ExportQuizPerformanceExcelView(APIView):
+    """
+    GET /api/quizzes/export/performance/excel/ — XLSX
+    """
+    permission_classes = (IsTeacherOrAdmin,)
+
+    def get(self, request):
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from io import BytesIO
+
+        rows = _build_quiz_performance_data()
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Успеваемость'
+
+        # Header row styling
+        header_fill = PatternFill(start_color='2563EB', end_color='2563EB', fill_type='solid')
+        header_font = Font(bold=True, color='FFFFFF', size=11)
+
+        for col, header in enumerate(HEADERS, start=1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        # Data rows
+        for row_idx, d in enumerate(rows, start=2):
+            for col_idx, value in enumerate(_row(d), start=1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                cell.alignment = Alignment(vertical='center')
+                # Colour "Пройден" column (index 7)
+                if col_idx == 7:
+                    if value == 'Да':
+                        cell.font = Font(color='16A34A', bold=True)
+                    else:
+                        cell.font = Font(color='DC2626', bold=True)
+
+        # Auto column width
+        for col in ws.columns:
+            max_len = max((len(str(cell.value or '')) for cell in col), default=10)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+
+        ws.row_dimensions[1].height = 22
+        ws.freeze_panes = 'A2'
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="quiz_performance.xlsx"'
         return response

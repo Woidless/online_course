@@ -8,10 +8,12 @@ from .views import (
     CourseGroupDetailView,
     EnrollStudentView,
     GroupEnrollmentListView,
+    EnrollmentDetailView,
     MyCoursesView,
     CourseCatalogView,
     SelfEnrollView,
 )
+from apps.quizzes.views import CourseQuizResultsView
 
 urlpatterns = [
     # Courses
@@ -29,4 +31,10 @@ urlpatterns = [
     path('groups/<int:group_id>/enroll/', EnrollStudentView.as_view(), name='group-enroll'),
     path('groups/<int:group_id>/join/', SelfEnrollView.as_view(), name='group-self-enroll'),
     path('groups/<int:group_id>/students/', GroupEnrollmentListView.as_view(), name='group-students'),
+
+    # Enrollment detail
+    path('enrollments/<int:pk>/', EnrollmentDetailView.as_view(), name='enrollment-detail'),
+
+    # Quiz results per course
+    path('<int:course_id>/quiz-results/', CourseQuizResultsView.as_view(), name='course-quiz-results'),
 ]

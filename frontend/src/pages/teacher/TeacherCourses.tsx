@@ -12,22 +12,6 @@ export default function TeacherCourses() {
     coursesApi.my().then(res => setCourses(res.data)).finally(() => setLoading(false))
   }, [])
 
-  const handlePublish = async (course: Course, e: React.MouseEvent) => {
-    e.preventDefault()
-    try {
-      if (course.is_published) {
-        await coursesApi.unpublish(course.id)
-      } else {
-        await coursesApi.publish(course.id)
-      }
-      setCourses(prev => prev.map(c =>
-        c.id === course.id ? { ...c, is_published: !c.is_published } : c
-      ))
-    } catch {
-      alert('Не удалось изменить статус курса')
-    }
-  }
-
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -77,15 +61,11 @@ export default function TeacherCourses() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={(e) => handlePublish(course, e)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                    course.is_published
-                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
-                  }`}>
-                  {course.is_published ? 'Снять с публикации' : 'Опубликовать'}
-                </button>
+                {!course.is_published && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    Публикует администратор
+                  </span>
+                )}
                 <button
                   onClick={() => navigate(`/teacher/courses/${course.id}`)}
                   className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">

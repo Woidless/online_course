@@ -13,6 +13,7 @@ export default function StudentQuizPage() {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<QuizAttempt | null>(null)
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [startError, setStartError] = useState('')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -37,14 +38,20 @@ export default function StudentQuizPage() {
 
   const handleStart = async () => {
     if (!id || !quiz) return
-    const { data } = await api.post<QuizAttempt>(`/quizzes/${id}/start/`)
-    setAttempt(data)
-    setAnswers({})
-    if (data.status === 'completed' || data.status === 'timed_out') {
-      setResult(data)
-      return
+    setStartError('')
+    try {
+      const { data } = await api.post<QuizAttempt>(`/quizzes/${id}/start/`)
+      setAttempt(data)
+      setAnswers({})
+      if (data.status === 'completed' || data.status === 'timed_out') {
+        setResult(data)
+        return
+      }
+      if (quiz.time_limit) startTimer(data.started_at, quiz.time_limit)
+    } catch (err: any) {
+      const msg = err.response?.data?.detail
+      setStartError(msg || 'Не удалось начать тест. Убедитесь, что вы записаны на курс.')
     }
-    if (quiz.time_limit) startTimer(data.started_at, quiz.time_limit)
   }
 
   const handleRetry = async () => {
@@ -172,6 +179,9 @@ export default function StudentQuizPage() {
           <button onClick={handleStart} className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
             Начать тест
           </button>
+          {startError && (
+            <p className="mt-3 text-sm text-red-600 dark:text-red-400">{startError}</p>
+          )}
         </div>
       </div>
     )

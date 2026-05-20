@@ -29,7 +29,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <h1 className="text-2xl font-semibold text-gray-900 mb-1">Войти</h1>
-        <p className="text-gray-500 text-sm mb-6">Добро пожаловать в LMS</p>
+        <p className="text-gray-500 text-sm mb-6">Добро пожаловать в Taalim Bulak</p>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">

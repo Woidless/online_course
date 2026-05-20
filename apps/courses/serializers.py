@@ -8,7 +8,9 @@ class CourseSerializer(serializers.ModelSerializer):
     teacher_id = serializers.PrimaryKeyRelatedField(
         source='teacher',
         queryset=__import__('apps.users.models', fromlist=['User']).User.objects.filter(role='teacher'),
-        write_only=True
+        write_only=True,
+        required=False,
+        allow_null=True,
     )
     lessons_count = serializers.SerializerMethodField()
     is_enrolled = serializers.SerializerMethodField()
@@ -40,7 +42,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class CourseGroupSerializer(serializers.ModelSerializer):
     course_title = serializers.CharField(source='course.title', read_only=True)
-    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True, allow_null=True, default=None)
     students_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -49,9 +51,10 @@ class CourseGroupSerializer(serializers.ModelSerializer):
             'id', 'course', 'course_title',
             'name', 'teacher', 'teacher_name',
             'starts_at', 'ends_at',
+            'is_enrollment_open',
             'students_count', 'created_at',
         )
-        read_only_fields = ('id', 'created_at')
+        read_only_fields = ('id', 'course', 'created_at')
 
     def get_students_count(self, obj):
         return obj.enrollments.filter(status='active').count()
@@ -75,7 +78,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 class GroupBriefSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseGroup
-        fields = ('id', 'name', 'starts_at')
+        fields = ('id', 'name', 'starts_at', 'is_enrollment_open')
 
 
 class CourseCatalogSerializer(serializers.ModelSerializer):

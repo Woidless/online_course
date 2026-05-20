@@ -107,23 +107,6 @@ export default function StudentLessonPage() {
         </div>
       )}
 
-      {lesson.colab_url && (
-        <a href={lesson.colab_url} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl p-4 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
-          <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" fill="none">
-            <rect width="24" height="24" rx="4" fill="#F9AB00"/>
-            <path d="M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm4-2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="white"/>
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-orange-900 dark:text-orange-200">Открыть в Google Colab</p>
-            <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">Интерактивный ноутбук с заданиями</p>
-          </div>
-          <svg className="w-4 h-4 ml-auto text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
-      )}
-
       {lesson.youtube_url && (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="aspect-video">

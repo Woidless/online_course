@@ -25,3 +25,6 @@ stripe==15.1.0
 typing_extensions==4.15.0
 uritemplate==4.2.0
 urllib3==2.6.3
+openpyxl
+celery==5.4.0
+redis==5.2.1

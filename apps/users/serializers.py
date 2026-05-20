@@ -63,9 +63,38 @@ class AdminUserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'email', 'full_name', 'role',
-            'avatar', 'is_active', 'is_staff', 'date_joined'
+            'avatar', 'is_active', 'is_staff', 'is_superuser', 'date_joined'
         )
-        read_only_fields = ('id', 'email', 'date_joined')
+        read_only_fields = ('id', 'is_superuser', 'date_joined')
+
+    def validate_email(self, value):
+        qs = User.objects.filter(email=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Этот email уже занят.')
+        return value
+
+
+class AdminCreateUserSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    full_name = serializers.CharField(max_length=255)
+    password = serializers.CharField(write_only=True, min_length=6)
+    role = serializers.ChoiceField(choices=['student', 'teacher', 'admin'])
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('Пользователь с таким email уже существует.')
+        return value
+
+    def create(self, validated_data):
+        return User.objects.create_user(
+            email=validated_data['email'],
+            full_name=validated_data['full_name'],
+            password=validated_data['password'],
+            role=validated_data['role'],
+            is_active=True,
+        )
 
 
 class ChangePasswordSerializer(serializers.Serializer):

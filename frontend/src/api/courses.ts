@@ -35,6 +35,10 @@ export const coursesApi = {
     }),
   getStudents: (groupId: number) =>
     api.get<Enrollment[]>(`/courses/groups/${groupId}/students/`),
+  updateEnrollment: (id: number, data: { group?: number; status?: string }) =>
+    api.patch<Enrollment>(`/courses/enrollments/${id}/`, data),
+  deleteEnrollment: (id: number) =>
+    api.delete(`/courses/enrollments/${id}/`),
 
   // Sections
   getSections: (courseId: number) =>

@@ -13,7 +13,9 @@ class Course(models.Model):
     )
     teacher = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='courses',
         limit_choices_to={'role': 'teacher'},
         verbose_name='Преподаватель'
@@ -58,6 +60,7 @@ class CourseGroup(models.Model):
     )
     starts_at = models.DateField(verbose_name='Дата начала')
     ends_at = models.DateField(null=True, blank=True, verbose_name='Дата окончания')
+    is_enrollment_open = models.BooleanField(default=True, verbose_name='Набор открыт')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

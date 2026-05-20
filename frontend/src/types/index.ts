@@ -8,6 +8,7 @@ export interface User {
   avatar: string | null
   date_joined: string
   is_active: boolean
+  is_superuser?: boolean
 }
 
 export interface Course {
@@ -30,6 +31,7 @@ export interface GroupBrief {
   id: number
   name: string
   starts_at: string
+  is_enrollment_open: boolean
 }
 
 export interface CourseCatalog {
@@ -54,6 +56,7 @@ export interface CourseGroup {
   teacher_name: string
   starts_at: string
   ends_at: string | null
+  is_enrollment_open: boolean
   students_count: number
   created_at: string
 }
@@ -199,6 +202,20 @@ export interface QuizAttempt {
   answers: Record<string, unknown>
   started_at: string
   finished_at: string | null
+}
+
+export interface QuizResult {
+  student_id: number
+  student_name: string
+  email: string
+  lesson_title: string
+  quiz_id: number
+  quiz_title: string
+  best_score: number
+  passing_score: number
+  passed: boolean
+  attempt_count: number
+  last_attempt: string | null
 }
 
 export interface Certificate {

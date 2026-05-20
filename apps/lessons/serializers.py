@@ -22,7 +22,7 @@ class LessonSerializer(serializers.ModelSerializer):
             'order', 'is_published', 'materials',
             'is_completed', 'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'course', 'created_at', 'updated_at')
 
     def get_is_completed(self, obj):
         request = self.context.get('request')
@@ -43,7 +43,7 @@ class SectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Section
         fields = ('id', 'course', 'title', 'order', 'lessons')
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'course')
 
     def get_lessons(self, obj):
         request = self.context.get('request')
@@ -72,7 +72,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     lesson_title = serializers.CharField(source='lesson.title', read_only=True)
     group_name = serializers.CharField(source='group.name', read_only=True)
     course_title = serializers.CharField(source='group.course.title', read_only=True)
-    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True, allow_null=True, default=None)
 
     class Meta:
         model = Schedule
